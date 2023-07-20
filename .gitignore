@@ -5,6 +5,8 @@ pix2pose_model/__pycache__/
 
 pix2pose_util/__pycache__/
 
+pix2pose_datasets
+
 rendering/__pycache__/
 
 tools/__pycache__/

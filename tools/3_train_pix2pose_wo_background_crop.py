@@ -121,7 +121,7 @@ if not(os.path.exists(weight_dir)):
         os.makedirs(weight_dir)
 data_dir = bop_dir+"/train_xyz/{:02d}".format(obj_id)
 
-batch_size=16
+batch_size=50
 
 datagenerator = dataio.data_generator(data_dir,batch_size=batch_size,res_x=im_width,res_y=im_height)
 
@@ -218,7 +218,7 @@ discriminator.compile(loss=['binary_crossentropy'],optimizer=optimizer_disc)
 discriminator.summary()
 
 N_data=datagenerator.n_data
-batch_size= 16
+batch_size= 50
 batch_counter=0
 n_batch_per_epoch= min(N_data/batch_size*10,3000) #check point: every 10 epoch
 step_lr_drop=5
@@ -235,7 +235,7 @@ K.set_value(discriminator.optimizer.lr, lr_current)
 K.set_value(dcgan.optimizer.lr, lr_current)
 #fed = GeneratorEnqueuer(feed_iter,use_multiprocessing=True, wait_time=5)
 fed = GeneratorEnqueuer(feed_iter,use_multiprocessing=False)
-fed.start(workers=1,max_queue_size=200)
+fed.start(workers=8,max_queue_size=200)
 iter_ = fed.get()
 print(iter_)
 print()
@@ -243,16 +243,6 @@ print()
 
 zero_target = np.zeros((batch_size))
 for X_src,X_tgt,disc_tgt,prob_gt in iter_:
-
-    if np.any(np.isnan(X_src)):
-        print("######## X_SRC ######")
-    if np.any(np.isnan(X_tgt)):
-        print("######## X_tgt ######")
-    if np.any(np.isnan(disc_tgt)):
-        print("######## disc_tgt ######")
-    if np.any(np.isnan(prob_gt)):
-        print("######## prob_gt ######")
-
     discriminator.trainable = True
     X_disc, y_disc = get_disc_batch(X_src,X_tgt,generator_train,0,
                                     label_smoothing=True,label_flipping=0.2)
