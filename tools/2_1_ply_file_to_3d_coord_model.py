@@ -2,7 +2,7 @@
 import os,sys
 sys.path.append(".")
 sys.path.append("./bop_toolkit")
-
+import copy
 
 import math
 from plyfile import PlyData, PlyElement
@@ -29,6 +29,32 @@ def get_xyz_max(fn_read):
 
 def convert_unique(fn_read,fn_write,center_x=True,center_y=True,center_z=True):
     plydata = PlyData.read(fn_read)
+
+    if 'red' not in plydata.elements[0].data.dtype.names:
+        # No texture data, assign gray color manually
+        n_vert = plydata.elements[0].data['x'].shape[0]
+        gray_color = 128  # Gray color intensity (0-255)
+
+        # Create new texture fields and assign gray color
+        red = np.ones(n_vert, dtype=np.uint8) * gray_color
+        green = np.ones(n_vert, dtype=np.uint8) * gray_color
+        blue = np.ones(n_vert, dtype=np.uint8) * gray_color
+
+        # Remove existing texture fields (if present)
+        fieldnames_to_remove = ['diffuse_red', 'diffuse_green', 'diffuse_blue']
+        plydata_copy = copy.deepcopy(plydata)
+        plydata_copy.elements[0].data = rmfield(plydata_copy.elements[0].data, *fieldnames_to_remove)
+
+        # Add the new fields to the copied plydata
+        plydata_copy.elements[0].data = recfunctions.append_fields(
+            plydata_copy.elements[0].data,
+            names=['red', 'green', 'blue'],
+            data=[red, green, blue],
+            dtypes=[np.uint8, np.uint8, np.uint8]
+        )
+    else:
+        # Texture data already exists, use the original plydata
+        plydata_copy = plydata
 
     #x,y,z : embbedding to RGB
     x_ct = np.mean(plydata.elements[0].data['x'])    

@@ -1,0 +1,16 @@
+{
+  "backbone":"resnet50",
+  "dataset_dir": "/Pix2Pose/pix2pose_datasets",
+  "dataset_names": ["hb","lmo","ycbv","tless","itodd","tudl","icbin", "lmo_random_texture_all", "tless_random_texture"],
+  "detection_pipeline": "rcnn",
+  "path_to_detection_pipeline": "/Pix2Pose/Mask_RCNN", 
+  "path_to_output": "/Pix2Pose/pix2pose_results",
+  "outlier_th":[0.15,0.25,0.35],
+  "inlier_th":0.15,
+  "norm_factor_fn":"norm_factor.json",
+  "background_imgs_for_training":"/Pix2Pose/coco",
+  "score_type":2,
+  "task_type":2,
+  "cand_factor":2,
+  "test_target":"test_targets_bop19"  
+}
