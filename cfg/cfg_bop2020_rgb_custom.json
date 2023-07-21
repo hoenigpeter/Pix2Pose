@@ -8,7 +8,6 @@
   "outlier_th":[0.15,0.25,0.35],
   "inlier_th":0.15,
   "norm_factor_fn":"norm_factor.json",
-  "background_imgs_for_training":"/Pix2Pose/coco",
   "score_type":2,
   "task_type":2,
   "cand_factor":2,

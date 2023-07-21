@@ -237,9 +237,6 @@ K.set_value(dcgan.optimizer.lr, lr_current)
 fed = GeneratorEnqueuer(feed_iter,use_multiprocessing=False)
 fed.start(workers=8,max_queue_size=200)
 iter_ = fed.get()
-print(iter_)
-print()
-
 
 zero_target = np.zeros((batch_size))
 for X_src,X_tgt,disc_tgt,prob_gt in iter_:
@@ -289,7 +286,7 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
         
         gen_images,probs = generator_train.predict(X_src)
 
-        imgfn = weight_dir+"/val_img/"+weight_prefix+"_{:02d}.png".format(epoch)
+        # imgfn = weight_dir+"/val_img/"+weight_prefix+"_{:02d}.png".format(epoch)
         # if not(os.path.exists(weight_dir+"/val_img/")):
         #     os.makedirs(weight_dir+"/val_img/")
         
@@ -301,9 +298,9 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
         # plt.savefig(imgfn)
         # plt.close()
         
-        # lr_current=lr_schedule[epoch]
-        # K.set_value(discriminator.optimizer.lr, lr_current)
-        # K.set_value(dcgan.optimizer.lr, lr_current)        
+        lr_current=lr_schedule[epoch]
+        K.set_value(discriminator.optimizer.lr, lr_current)
+        K.set_value(dcgan.optimizer.lr, lr_current)        
 
     batch_counter+=1
     if(epoch>max_epoch): 
