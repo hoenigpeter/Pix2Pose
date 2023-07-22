@@ -1,1 +1,1 @@
-docker build -t pix2pose ./Dockerfile ./requirements.txt
+docker build -t pix2pose .

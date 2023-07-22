@@ -7,5 +7,5 @@ docker run \
     -it \
     -v /home/hoenig/BOP/Pix2Pose:/Pix2Pose \
     --shm-size=1g --ulimit memlock=-1 --ulimit stack=67108864 \
-    --name=pix2pose_tf2v0 pix2pose_tf2 \
+    --name=pix2pose_rtx3000v0 pix2pose_rtx3000 \
     bash
