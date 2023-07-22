@@ -70,6 +70,10 @@ from tools import bop_io
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
+configuration = tf.compat.v1.ConfigProto()
+configuration.gpu_options.allow_growth = True
+session = tf.compat.v1.Session(config=configuration)
+
 def dummy_loss(y_true,y_pred):
     return y_pred
 
@@ -308,5 +312,6 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
         if(backbone=='paper'):
             generator_train.save_weights(os.path.join(weight_dir,"inference.hdf5"))        
         else:
-            generator_train.save(os.path.join(weight_dir,"inference_resnet_model.hdf5"))        
+            generator_train.save(os.path.join(weight_dir,"inference_resnet_model.hdf5"))
+            sys.exit()  # Exit the script here        
         break

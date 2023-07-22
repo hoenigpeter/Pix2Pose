@@ -59,9 +59,6 @@ scipy==1.5.1
 SecretStorage==2.3.1
 Shapely==1.8.5.post1
 six==1.11.0
-tensorboard==1.15.0
-tensorflow-estimator==1.15.1
-tensorflow-gpu==1.15.5
 termcolor==1.1.0
 Theano==1.0.5
 tifffile==2020.9.3

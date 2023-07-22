@@ -96,6 +96,17 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
         else:
             model_dir = bop_dataset_dir+"/models_cad"
         model_scale=0.001
+    elif(dataset=='tless_random_texture'):
+        bop_dataset_dir = os.path.join(bop_dir,"tless")
+        test_dir = bop_dataset_dir+"/test_primesense"
+        train_dir = bop_dataset_dir+"/train_primesense"
+        if not(train) and not(eval_model):
+            model_dir = bop_dataset_dir+"/models_reconst" #use this only for vis
+        elif eval_model:
+            model_dir = bop_dataset_dir+"/models_eval"
+        else:
+            model_dir = bop_dataset_dir+"/models_cad"
+        model_scale=0.001
     elif(dataset=='ycbv'):
         bop_dataset_dir = os.path.join(bop_dir,"ycbv")
         test_dir = bop_dataset_dir+"/test"

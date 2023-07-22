@@ -1,0 +1,1 @@
+docker build -t pix2pose_rtx3000 ./Dockerfile_rtx3000 ./requirements.txt
