@@ -160,14 +160,13 @@ class pix2pose():
             # Display the image using Matplotlib
             plt.imshow(image_array)
             plt.title('Channels 1 to 3')
-            plt.axis('off')  # Turn off axis
             plt.show()
 
             # Save the image with a random filename
-            random_filename = str(random.randint(100000, 999999))  # Generating a random 6-digit number
-            save_path = f"{random_filename}.png"
-            plt.savefig(save_path, bbox_inches='tight')
-            print(f"Image saved as {save_path}")
+            # random_filename = str(random.randint(100000, 999999))  # Generating a random 6-digit number
+            # save_path = f"{random_filename}.png"
+            # plt.savefig(save_path, bbox_inches='tight')
+            # print(f"Image saved as {save_path}")
 
             non_gray = resize(non_gray.astype(float),(v2_ori-v1_ori,u2_ori-u1_ori),order=1,mode='constant',cval=0)>0.9
             non_gray = non_gray[vv1:vv2,uu1:uu2]
