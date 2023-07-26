@@ -38,6 +38,10 @@ from keras.layers import Layer
 from pix2pose_util import data_io as dataio
 from tools import bop_io
 
+configuration = tf.compat.v1.ConfigProto()
+configuration.gpu_options.allow_growth = True
+session = tf.compat.v1.Session(config=configuration)
+
 def dummy_loss(y_true,y_pred):
     return y_pred
 
@@ -251,17 +255,17 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
         
         gen_images,probs = generator_train.predict(X_src)
 
-        imgfn = weight_dir+"/val_img/"+weight_prefix+"_{:02d}.png".format(epoch)
-        if not(os.path.exists(weight_dir+"/val_img/")):
-            os.makedirs(weight_dir+"/val_img/")
+        # imgfn = weight_dir+"/val_img/"+weight_prefix+"_{:02d}.png".format(epoch)
+        # if not(os.path.exists(weight_dir+"/val_img/")):
+        #     os.makedirs(weight_dir+"/val_img/")
         
-        f,ax=plt.subplots(10,3,figsize=(10,20))
-        for i in range(10):
-            ax[i,0].imshow( (X_src[i]+1)/2)
-            ax[i,1].imshow( (X_tgt[i]+1)/2)
-            ax[i,2].imshow( (gen_images[i]+1)/2)
-        plt.savefig(imgfn)
-        plt.close()
+        # f,ax=plt.subplots(10,3,figsize=(10,20))
+        # for i in range(10):
+        #     ax[i,0].imshow( (X_src[i]+1)/2)
+        #     ax[i,1].imshow( (X_tgt[i]+1)/2)
+        #     ax[i,2].imshow( (gen_images[i]+1)/2)
+        # plt.savefig(imgfn)
+        # plt.close()
         
         lr_current=lr_schedule[epoch]
         K.set_value(discriminator.optimizer.lr, lr_current)
@@ -273,5 +277,6 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
         if(backbone=='paper'):
             generator_train.save_weights(os.path.join(weight_dir,"inference.hdf5"))        
         else:
-            generator_train.save(os.path.join(weight_dir,"inference_resnet_model.hdf5"))        
+            generator_train.save(os.path.join(weight_dir,"inference_resnet_model.hdf5"))
+            sys.exit()  # Exit the script here          
         break

@@ -222,7 +222,7 @@ discriminator.compile(loss=['binary_crossentropy'],optimizer=optimizer_disc)
 discriminator.summary()
 
 N_data=datagenerator.n_data
-batch_size= 50
+batch_size=50
 batch_counter=0
 n_batch_per_epoch= min(N_data/batch_size*10,3000) #check point: every 10 epoch
 step_lr_drop=5

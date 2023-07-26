@@ -78,6 +78,40 @@ def get_rendering(obj_model,rot_pose,tra_pose, ren):
     
     return img_r, depth_rend, bbox_gt
 
+# def augment_inplane_gen(xyz_id,img,img_r,depth_rend,mask,isYCB=False,step=10):
+#     depth_mask = (depth_rend>0).astype(np.float)
+#     for rot in np.arange(step,360,step):
+#         xyz_fn =  os.path.join(xyz_dir,"{:06d}_{:03d}.npy".format(xyz_id,rot))
+#         img_r_rot = rotate((img_r/255).astype(np.float32), rot,resize=True,cval=0)*255
+#         img_rot = rotate((img/255).astype(np.float32), rot,resize=True,cval=0.5)*255
+#         depth_rot = rotate(depth_mask, rot,resize=True)
+
+#         if(isYCB):
+#             mask_rot = rotate(mask.astype(np.float32), rot,resize=True)
+#         vu_box = np.where(depth_rot>0)
+#         bbox_t = np.array([np.min(vu_box[0]),np.min(vu_box[1]),np.max(vu_box[0]),np.max(vu_box[1])])
+#         if(isYCB):img_npy = np.zeros((bbox_t[2]-bbox_t[0],bbox_t[3]-bbox_t[1],7),np.uint8)
+#         else:img_npy = np.zeros((bbox_t[2]-bbox_t[0],bbox_t[3]-bbox_t[1],6),np.uint8)
+#         img_npy[:,:,:3]=[128,128,128]
+#         img_npy[:,:,:3]=img_rot[bbox_t[0]:bbox_t[2],bbox_t[1]:bbox_t[3]]
+#         img_npy[:,:,3:6]=img_r_rot[bbox_t[0]:bbox_t[2],bbox_t[1]:bbox_t[3]]
+#         if(isYCB):
+#             img_npy[:,:,6]=mask_rot[bbox_t[0]:bbox_t[2],bbox_t[1]:bbox_t[3]]
+        
+#         data=img_npy
+#         max_axis=max(data.shape[0],data.shape[1])
+#         if(max_axis>128):                
+#                 scale = 128.0/max_axis 
+#                 new_shape=np.array([data.shape[0]*scale+0.5,data.shape[1]*scale+0.5]).astype(np.int) 
+#                 new_data = np.zeros((new_shape[0],new_shape[1],data.shape[2]),data.dtype)
+#                 new_data[:,:,:3] = resize( (data[:,:,:3]/255).astype(np.float32),(new_shape[0],new_shape[1]))*255
+#                 new_data[:,:,3:6] = resize( (data[:,:,3:6]/255).astype(np.float32),(new_shape[0],new_shape[1]))*255
+#                 if(data.shape[2]>6):
+#                     new_data[:,:,6:] = (resize(data[:,:,6:],(new_shape[0],new_shape[1]))>0.5).astype(np.uint8)
+#         else:
+#             new_data=data
+#         np.save(xyz_fn,new_data)
+
 def augment_inplane_gen(xyz_id, img, img_r, depth_rend, mask, isYCB=False, step=10):
     depth_mask = (depth_rend > 0).astype(np.float)
     for rot in np.arange(step, 360, step):
@@ -135,6 +169,7 @@ else:
     im_width,im_height =cam_param_global['im_size'] 
     cam_K = cam_param_global['K']
     #check if the image dimension is the same
+    print(rgb_files)
     rgb_fn = rgb_files[0]
     img_temp = inout.load_im(rgb_fn)
     if(img_temp.shape[0]!=im_height or img_temp.shape[1]!=im_width):
@@ -226,7 +261,7 @@ for m_id,model_id in enumerate(model_ids):
                 n_scene =len(scene_keys)
                 for img_id in np.arange(1,n_scene,100):
                     im_id = img_id
-                    rgb_fn = os.path.join(sub_dir+"/rgb","{:06d}.png".format(im_id))
+                    rgb_fn = os.path.join(sub_dir+"/rgb","{:06d}.jpg".format(im_id))
                     print(rgb_fn)
                     gts_real = scene_gts[im_id]
                     scene_info = scene_gt_info["{}".format(im_id)]

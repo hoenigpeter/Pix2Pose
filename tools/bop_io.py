@@ -55,6 +55,12 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
       train_dir = bop_dataset_dir+"/train"
       model_dir = bop_dataset_dir+"/models"+postfix_model
       model_scale=0.001
+    if(dataset=='lmo_random_texture_all'):
+      bop_dataset_dir = os.path.join(bop_dir,"lmo_random_texture_all")
+      test_dir = bop_dataset_dir+"/test"
+      train_dir = bop_dataset_dir+"/train_pbr"
+      model_dir = bop_dataset_dir+"/models"+postfix_model
+      model_scale=0.001
     elif(dataset=='ruapc'):
       bop_dataset_dir = os.path.join(bop_dir,"ruapc")
       test_dir = bop_dataset_dir+"/test"
@@ -163,7 +169,7 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
                         if(dataset=="itodd" and not(train)):
                             rgb_fn = os.path.join(current_dir+"/gray","{:06d}.tif".format(im_id))
                         else:
-                            rgb_fn = os.path.join(current_dir+"/rgb","{:06d}.png".format(im_id))
+                            rgb_fn = os.path.join(current_dir+"/rgb","{:06d}.jpg".format(im_id))
                         depth_fn = os.path.join(current_dir+"/depth","{:06d}.png".format(im_id))
                         if(train):
                             if(dataset=='hb' or dataset=='itodd' or dataset=='ycbv'):
