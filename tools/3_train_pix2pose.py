@@ -205,7 +205,8 @@ real_ratio=1.0
 feed_iter= datagenerator.generator()
 K.set_value(discriminator.optimizer.lr, lr_current)
 K.set_value(dcgan.optimizer.lr, lr_current)
-fed = GeneratorEnqueuer(feed_iter,use_multiprocessing=True, wait_time=5)
+#fed = GeneratorEnqueuer(feed_iter,use_multiprocessing=True, wait_time=5)
+fed = GeneratorEnqueuer(feed_iter,use_multiprocessing=True)
 fed.start(workers=6,max_queue_size=200)
 iter_ = fed.get()
 
