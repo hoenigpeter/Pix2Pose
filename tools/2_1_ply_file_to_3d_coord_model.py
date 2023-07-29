@@ -73,18 +73,18 @@ def convert_unique(fn_read,fn_write,center_x=True,center_y=True,center_z=True):
     z_abs = np.max(np.abs(plydata.elements[0].data['z']-z_ct))    
     n_vert = plydata.elements[0].data['x'].shape[0]
    
-    for i in range(n_vert):
-        r=(plydata.elements[0].data['x'][i]-x_ct)/x_abs #-1 to 1
-        r = (r+1)/2 #0 to 2 -> 0 to 1        
-        g=(plydata.elements[0].data['y'][i]-y_ct)/y_abs
-        g = (g+1)/2
-        b=(plydata.elements[0].data['z'][i]-z_ct)/z_abs
-        b = (b+1)/2
-        #if b> 1: b=1
-        #if b<0: b=0
-        plydata.elements[0].data['red'][i]=r*255
-        plydata.elements[0].data['green'][i]=g*255
-        plydata.elements[0].data['blue'][i]=b*255
+    # for i in range(n_vert):
+    #     r=(plydata.elements[0].data['x'][i]-x_ct)/x_abs #-1 to 1
+    #     r = (r+1)/2 #0 to 2 -> 0 to 1        
+    #     g=(plydata.elements[0].data['y'][i]-y_ct)/y_abs
+    #     g = (g+1)/2
+    #     b=(plydata.elements[0].data['z'][i]-z_ct)/z_abs
+    #     b = (b+1)/2
+    #     #if b> 1: b=1
+    #     #if b<0: b=0
+    #     plydata.elements[0].data['red'][i]=r*255
+    #     plydata.elements[0].data['green'][i]=g*255
+    #     plydata.elements[0].data['blue'][i]=b*255
     plydata.write(fn_write)        
     return x_abs,y_abs,z_abs,x_ct,y_ct,z_ct
 

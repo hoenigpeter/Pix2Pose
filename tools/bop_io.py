@@ -82,7 +82,12 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
     elif(dataset=='itodd'):
         bop_dataset_dir = os.path.join(bop_dir,"itodd")
         test_dir = bop_dataset_dir+"/test"
-        train_dir = bop_dataset_dir+"/train"
+        train_dir = bop_dataset_dir+"/train_pbr"
+        model_dir = bop_dataset_dir+"/models"+postfix_model
+    elif(dataset=='itodd_random_texture'):
+        bop_dataset_dir = os.path.join(bop_dir,"itodd_random_texture")
+        test_dir = bop_dataset_dir+"/test"
+        train_dir = bop_dataset_dir+"/train_pbr"
         model_dir = bop_dataset_dir+"/models"+postfix_model
         model_scale=0.001
     elif(dataset=='tudl'):
@@ -94,7 +99,7 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
     elif(dataset=='tless'):
         bop_dataset_dir = os.path.join(bop_dir,"tless")
         test_dir = bop_dataset_dir+"/test_primesense"
-        train_dir = bop_dataset_dir+"/train_primesense"
+        train_dir = bop_dataset_dir+"/train_pbr"
         if not(train) and not(eval_model):
             model_dir = bop_dataset_dir+"/models_reconst" #use this only for vis
         elif eval_model:
@@ -103,9 +108,9 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
             model_dir = bop_dataset_dir+"/models_cad"
         model_scale=0.001
     elif(dataset=='tless_random_texture'):
-        bop_dataset_dir = os.path.join(bop_dir,"tless")
+        bop_dataset_dir = os.path.join(bop_dir,"tless_random_texture")
         test_dir = bop_dataset_dir+"/test_primesense"
-        train_dir = bop_dataset_dir+"/train_primesense"
+        train_dir = bop_dataset_dir+"/train_pbr"
         if not(train) and not(eval_model):
             model_dir = bop_dataset_dir+"/models_reconst" #use this only for vis
         elif eval_model:
@@ -172,7 +177,8 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
                             rgb_fn = os.path.join(current_dir+"/rgb","{:06d}.jpg".format(im_id))
                         depth_fn = os.path.join(current_dir+"/depth","{:06d}.png".format(im_id))
                         if(train):
-                            if(dataset=='hb' or dataset=='itodd' or dataset=='ycbv'):
+                            #if(dataset=='hb' or dataset=='itodd' or dataset=='ycbv'):
+                            if(dataset=='hb' or dataset=='ycbv'):
                                 mask_fn = os.path.join(current_dir+"/mask","{:06d}.png".format(im_id))
                             else:
                                 mask_fn = os.path.join(current_dir+"/mask","{:06d}_000000.png".format(im_id))
