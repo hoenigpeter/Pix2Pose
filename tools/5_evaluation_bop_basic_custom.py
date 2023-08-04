@@ -54,11 +54,37 @@ if detect_type=='rcnn':
         rois = r['rois']
         rois = rois - [window[0],window[1],window[0],window[1]]
         rois = (rois/scale).astype(np.int)
-        obj_orders = np.array(r['class_ids'])-1
-        obj_ids = model_ids[obj_orders] 
-        #now c_ids are the same annotation those of the names of ply/gt files
-        scores = np.array(r['scores'])
-        masks = r['masks'][window[0]:window[2],window[1]:window[3],:]
+
+        # print(r['class_ids'].shape)
+        # print(len(r['class_ids']))
+        # print(r['class_ids'])
+        # print(rois)
+        # print()
+                
+        if 1 in r['class_ids']:
+            index = -1  # Initialize with a value that indicates "not found"
+
+            for i in range(len(r['class_ids'])):
+                if r['class_ids'][i] == 1:
+                    index = i
+                    break  # Exit the loop once the number is found
+            # print(index)
+
+            obj_orders = np.array([1])-1
+            obj_ids = model_ids[obj_orders] 
+            #now c_ids are the same annotation those of the names of ply/gt files
+            scores = [np.array(r['scores'][index])]
+            masks = r['masks'][window[0]:window[2],window[1]:window[3],:]
+            rois = [np.array(rois[index])]
+            #masks = [masks[index]]
+            # print()
+            # print(obj_ids)
+            # print()
+            # print(scores)
+            # print()
+            # print(masks)
+        else:
+            rois,obj_orders,obj_ids,scores,masks=([] for i in range(5))
         return rois,obj_orders,obj_ids,scores,masks
 
 elif detect_type=='retinanet':
@@ -151,7 +177,6 @@ if("target_obj" in cfg.keys()):
         
     model_ids = model_ids[incl_obj_id]
     
-
 print("Camera info-----------------")
 print(im_width,im_height)
 print(cam_K)
@@ -192,6 +217,11 @@ elif(detect_type=='retinanet'):
     model = models.load_model(os.path.join(MODEL_DIR,detection_weight_fn), backbone_name='resnet50')
 
 
+print(model_ids)
+
+model_ids = np.array([1])
+
+print(model_ids)
 '''
 Load pix2pose inference weights
 '''
@@ -206,7 +236,7 @@ else:
 for m_id,model_id in enumerate(model_ids):
     model_param = model_params['{}'.format(model_id)]
     obj_param=bop_io.get_model_params(model_param)
-    weight_dir = bop_dir+"/pix2pose_weights_temp/{:02d}".format(model_id)
+    weight_dir = bop_dir+"/pix2pose_weights/{:02d}".format(model_id)
     if(backbone=='resnet50'):
         weight_fn = os.path.join(weight_dir,"inference_resnet_model.hdf5")
         if not(os.path.exists(weight_fn)):
@@ -250,7 +280,8 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
         if(dummy_run):
             image_t = np.zeros((im_height,im_width,3),np.uint8)        
             for obj_id_target in obj_id_targets: #refreshing
-                _,_,_,_,_,_ = obj_pix2pose[model_ids_list.index(obj_id_target)].est_pose(image_t,np.array([0,0,128,128],np.int))    
+                if obj_id_target == model_ids[0]:
+                    _,_,_,_,_,_ = obj_pix2pose[model_ids_list.index(obj_id_target)].est_pose(image_t,np.array([0,0,128,128],np.int))    
     
     prev_sid=scene_id #to avoid re-load scene_camera.json
     cam_param = cam_info[im_id]
@@ -286,7 +317,9 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
     result_img=[]
     vis=False
 
+    print(len(rois))
     for r_id,roi in enumerate(rois):
+        print(r_id)
         if(roi[0]==-1 and roi[1]==-1):
             continue
         obj_id = obj_ids[r_id]        
@@ -301,7 +334,7 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
         obj_order_id = obj_orders[r_id]
         obj_pix2pose[obj_order_id].camK=cam_K.reshape(3,3)                
         img_pred,mask_pred,rot_pred,tra_pred,frac_inlier,bbox_t =\
-        obj_pix2pose[obj_order_id].est_pose(image_t,roi.astype(np.int))            
+        obj_pix2pose[obj_order_id].est_pose(image_t,roi.astype(np.int))          
         if(frac_inlier==-1):
             continue        
         if(score_type==2 and detect_type=='rcnn'):       
