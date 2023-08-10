@@ -180,8 +180,6 @@ elif(max_epoch==20): #lr-shcedule used in the paper
                 1E-3,1E-3,1E-3,1E-3,1E-4,
                 1E-4,1E-4,1E-4,1E-4,1E-4,
                 1E-4,1E-4,1E-4,1E-4,1E-5]
-elif(max_epoch==1): #lr-shcedule used in the paper
-    lr_schedule=[1E-3]
 
 dcgan.compile(loss=[dummy_loss, 'binary_crossentropy'],
                 loss_weights=loss_weights ,optimizer=optimizer_dcgan)

@@ -159,7 +159,7 @@ class pix2pose():
 
             # Display the image using Matplotlib
             plt.imshow(image_array)
-            plt.title('Channels 1 to 3')
+            plt.title('2D3D Corr Map')
             plt.show()
 
             # Save the image with a random filename

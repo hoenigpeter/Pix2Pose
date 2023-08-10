@@ -35,12 +35,8 @@ from keras.models import Model
 from keras.utils import GeneratorEnqueuer
 from keras.layers import Layer
 
-from pix2pose_util import data_io_no_background as dataio
+from pix2pose_util import data_io as dataio
 from tools import bop_io
-
-configuration = tf.compat.v1.ConfigProto()
-configuration.gpu_options.allow_growth = True
-session = tf.compat.v1.Session(config=configuration)
 
 def dummy_loss(y_true,y_pred):
     return y_pred
@@ -88,7 +84,7 @@ bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_fi
 im_width,im_height =cam_param_global['im_size'] 
 weight_prefix = "pix2pose" 
 obj_id = int(sys.argv[4]) #identical to the number for the ply file.
-weight_dir = bop_dir+"/pix2pose_weights_no_bg/{:02d}".format(obj_id)
+weight_dir = bop_dir+"/pix2pose_weights/{:02d}".format(obj_id)
 if not(os.path.exists(weight_dir)):
         os.makedirs(weight_dir)
 back_dir = sys.argv[5]
@@ -205,8 +201,7 @@ real_ratio=1.0
 feed_iter= datagenerator.generator()
 K.set_value(discriminator.optimizer.lr, lr_current)
 K.set_value(dcgan.optimizer.lr, lr_current)
-#fed = GeneratorEnqueuer(feed_iter,use_multiprocessing=True, wait_time=5)
-fed = GeneratorEnqueuer(feed_iter,use_multiprocessing=True)
+fed = GeneratorEnqueuer(feed_iter,use_multiprocessing=True, wait_time=5)
 fed.start(workers=6,max_queue_size=200)
 iter_ = fed.get()
 
@@ -256,17 +251,17 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
         
         gen_images,probs = generator_train.predict(X_src)
 
-        # imgfn = weight_dir+"/val_img/"+weight_prefix+"_{:02d}.png".format(epoch)
-        # if not(os.path.exists(weight_dir+"/val_img/")):
-        #     os.makedirs(weight_dir+"/val_img/")
+        imgfn = weight_dir+"/val_img/"+weight_prefix+"_{:02d}.png".format(epoch)
+        if not(os.path.exists(weight_dir+"/val_img/")):
+            os.makedirs(weight_dir+"/val_img/")
         
-        # f,ax=plt.subplots(10,3,figsize=(10,20))
-        # for i in range(10):
-        #     ax[i,0].imshow( (X_src[i]+1)/2)
-        #     ax[i,1].imshow( (X_tgt[i]+1)/2)
-        #     ax[i,2].imshow( (gen_images[i]+1)/2)
-        # plt.savefig(imgfn)
-        # plt.close()
+        f,ax=plt.subplots(10,3,figsize=(10,20))
+        for i in range(10):
+            ax[i,0].imshow( (X_src[i]+1)/2)
+            ax[i,1].imshow( (X_tgt[i]+1)/2)
+            ax[i,2].imshow( (gen_images[i]+1)/2)
+        plt.savefig(imgfn)
+        plt.close()
         
         lr_current=lr_schedule[epoch]
         K.set_value(discriminator.optimizer.lr, lr_current)
@@ -278,6 +273,5 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
         if(backbone=='paper'):
             generator_train.save_weights(os.path.join(weight_dir,"inference.hdf5"))        
         else:
-            generator_train.save(os.path.join(weight_dir,"inference_resnet_model.hdf5"))
-            sys.exit()  # Exit the script here          
+            generator_train.save(os.path.join(weight_dir,"inference_resnet_model.hdf5"))        
         break

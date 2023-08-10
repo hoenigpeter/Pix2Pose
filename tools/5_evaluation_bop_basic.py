@@ -30,6 +30,9 @@ from pix2pose_model import ae_model as ae
 from pix2pose_model import recognition as recog
 from pix2pose_util.common_util import get_bbox_from_mask
 
+configuration = tf.compat.v1.ConfigProto()
+configuration.gpu_options.allow_growth = True
+session = tf.compat.v1.Session(config=configuration)
 
 cfg_fn =sys.argv[2]
 cfg = inout.load_json(cfg_fn)
