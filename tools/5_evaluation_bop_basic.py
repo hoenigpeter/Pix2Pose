@@ -62,6 +62,11 @@ if detect_type=='rcnn':
         #now c_ids are the same annotation those of the names of ply/gt files
         scores = np.array(r['scores'])
         masks = r['masks'][window[0]:window[2],window[1]:window[3],:]
+
+        print("rois: ", rois)
+        print("obj_orders: ", obj_orders)
+        print("obj_ids: ", obj_ids)
+        print("scores: ", scores)
         return rois,obj_orders,obj_ids,scores,masks
 
 elif detect_type=='retinanet':
@@ -137,7 +142,6 @@ if(dataset=='itodd'):
 else:
     img_type='rgb'
     
-
 if("target_obj" in cfg.keys()):
     target_obj = cfg['target_obj']
     remove_obj_id=[]

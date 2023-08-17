@@ -10,6 +10,8 @@ import random
 import numpy as np
 import transforms3d as tf3d
 
+import json
+
 ROOT_DIR = os.path.abspath(".")
 sys.path.append(ROOT_DIR)  # To find local version of the library
 sys.path.append("./bop_toolkit")
@@ -27,132 +29,72 @@ from bop_toolkit_lib import inout
 from tools import bop_io
 from pix2pose_util import data_io as dataio
 from pix2pose_model import ae_model as ae
-from pix2pose_model import recognition_custom as recog
+from pix2pose_model import recognition as recog
 from pix2pose_util.common_util import get_bbox_from_mask
 
+configuration = tf.compat.v1.ConfigProto()
+configuration.gpu_options.allow_growth = True
+session = tf.compat.v1.Session(config=configuration)
 
 cfg_fn =sys.argv[2]
 cfg = inout.load_json(cfg_fn)
-detect_type = cfg['detection_pipeline']
-if detect_type=='rcnn':
-    detection_dir=cfg['path_to_detection_pipeline']
-    sys.path.append(detection_dir)
-    from mrcnn.config import Config
-    from mrcnn import utils
-    import mrcnn.model as modellib
-    from tools.mask_rcnn_util import BopInferenceConfig
-    from skimage.transform import resize
 
-    def get_rcnn_detection(image_t,model):
-        image_t_resized, window, scale, padding, crop = utils.resize_image(
-                        np.copy(image_t),
-                        min_dim=BopInferenceConfig.IMAGE_MIN_DIM,
-                        min_scale=BopInferenceConfig.IMAGE_MIN_SCALE,
-                        max_dim=BopInferenceConfig.IMAGE_MAX_DIM,
-                        mode=BopInferenceConfig.IMAGE_RESIZE_MODE)
-        results = model.detect([image_t_resized], verbose=0)
-        r = results[0]
-        rois = r['rois']
-        rois = rois - [window[0],window[1],window[0],window[1]]
-        rois = (rois/scale).astype(np.int)
-        obj_orders = np.array(r['class_ids'])-1
-        print("rois: ", rois)
-        print("obj_orders: ", obj_orders)
-        obj_ids = model_ids[obj_orders] 
-        #now c_ids are the same annotation those of the names of ply/gt files
-        scores = np.array(r['scores'])
-        masks = r['masks'][window[0]:window[2],window[1]:window[3],:]
+#from tools.mask_rcnn_util import BopInferenceConfig
+from skimage.transform import resize
 
+# Load the JSON data from the file
+print()
+det_path = cfg["dataset_dir"] + "/" + sys.argv[3] + "/test/test_bboxes/" + cfg["detection_file"]
+print(det_path)
+print()
 
-        print("obj_ids: ", obj_ids)
-        print("scores: ", scores)
-        print("masks: ", masks)
- 
-        return rois,obj_orders,obj_ids,scores,masks
+with open(det_path, 'r') as json_file:
+    data = json.load(json_file)
+
+# Create a mapping between image paths and detection instances
+image_detection_map = {}
+for scene_image_id, detections in data.items():
+    scene_id, image_id = map(int, scene_image_id.split('/'))
+    if sys.argv[3] == "itodd":
+        image_path = f"{scene_id:06d}/gray/{image_id:06d}.tif"
+    else:
+        image_path = f"{scene_id:06d}/rgb/{image_id:06d}.png"
+    image_detection_map[image_path] = detections
+
+def get_gt_detection(path):
+    print(path)
+    if sys.argv[3] == "tless":
+        relative_image_path = path.split('primesense/')[1]
+    else:
+        relative_image_path = path.split('test/')[1]
+
+    print(relative_image_path)
+    detections_for_image = image_detection_map.get(relative_image_path, [])
+    rois = [[bbox[1], bbox[0], bbox[1] + bbox[3], bbox[0] + bbox[2]] for detection in detections_for_image for bbox in [detection['bbox_est']]]
     
-    # def get_rcnn_detection(image_t,model):
-    #     image_t_resized, window, scale, padding, crop = utils.resize_image(
-    #                     np.copy(image_t),
-    #                     min_dim=BopInferenceConfig.IMAGE_MIN_DIM,
-    #                     min_scale=BopInferenceConfig.IMAGE_MIN_SCALE,
-    #                     max_dim=BopInferenceConfig.IMAGE_MAX_DIM,
-    #                     mode=BopInferenceConfig.IMAGE_RESIZE_MODE)
-    #     results = model.detect([image_t_resized], verbose=0)
-    #     r = results[0]
-    #     rois = r['rois']
-    #     rois = rois - [window[0],window[1],window[0],window[1]]
-    #     rois = (rois/scale).astype(np.int)
+    obj_ids = [detection['obj_id'] for detection in detections_for_image]
+    scores = [detection['score'] for detection in detections_for_image]
+    obj_ids = np.array(obj_ids)
 
-    #     # print(r['class_ids'].shape)
-    #     # print(len(r['class_ids']))
-    #     # print(r['class_ids'])
-    #     # print(rois)
-    #     # print()
-                
-    #     if 1 in r['class_ids']:
-    #         index = -1  # Initialize with a value that indicates "not found"
+    if sys.argv[3] == "lmo":
+        dataset_mapping = {
+            "lmo": {1: 0, 5: 1, 6: 2, 8: 3, 9: 4, 10: 5, 11: 6, 12: 7}
+        }
+        obj_orders = [dataset_mapping["lmo"].get(detection['obj_id'], detection['obj_id']) for detection in detections_for_image]
+    else:
+        obj_orders = obj_ids-1
 
-    #         for i in range(len(r['class_ids'])):
-    #             if r['class_ids'][i] == 1:
-    #                 index = i
-    #                 break  # Exit the loop once the number is found
-    #         # print(index)
+    rois = np.array(rois)
+    obj_orders = np.array(obj_orders)
+    scores = np.array(scores)
 
-    #         obj_orders = np.array([1])-1
-    #         obj_ids = model_ids[obj_orders] 
-    #         #now c_ids are the same annotation those of the names of ply/gt files
-    #         scores = [np.array(r['scores'][index])]
-    #         masks = r['masks'][window[0]:window[2],window[1]:window[3],:]
-    #         rois = [np.array(rois[index])]
-    #         #masks = [masks[index]]
-    #         # print()
-    #         # print(obj_ids)
-    #         # print()
-    #         # print(scores)
-    #         # print()
-    #         # print(masks)
-    #     else:
-    #         rois,obj_orders,obj_ids,scores,masks=([] for i in range(5))
-    #     return rois,obj_orders,obj_ids,scores,masks
+    print()
+    print("rois: ", rois)
+    print("obj_orders: ", obj_orders)
+    print("obj_ids: ", obj_ids)
+    print("scores: ", scores)
 
-elif detect_type=='retinanet':
-    detection_dir=cfg['path_to_detection_pipeline']
-    sys.path.append(detection_dir)
-    from keras_retinanet import models
-    from keras_retinanet.utils.image import read_image_bgr, preprocess_image, resize_image
-    from keras_retinanet.utils.visualization import draw_box, draw_caption
-    from keras_retinanet.utils.colors import label_color
-    def get_retinanet_detection(image_t,model):
-        image = preprocess_image(image_t[:,:,::-1]) #needs bgr order bgr?
-        image, scale = resize_image(image)
-        boxes, scores, labels = model.predict_on_batch(np.expand_dims(image, axis=0))
-        boxes /= scale
-        boxes = boxes[0]
-        scores = scores[0]
-        labels = labels[0]
-        
-        score_mask = scores>0
-        if(np.sum(score_mask)==0):
-            return np.array([[-1,-1,-1,-1]]),-1,-1,-1
-
-        else:            
-            scores = scores[score_mask]
-            boxes =  boxes[score_mask]
-            labels =  labels[score_mask]
-            
-            rois = np.zeros((boxes.shape[0],4),np.int)
-            rois[:,0] = boxes[:,1]
-            rois[:,1] = boxes[:,0]
-            rois[:,2] = boxes[:,3]
-            rois[:,3] = boxes[:,2]
-            obj_orders = labels 
-            obj_ids = model_ids[obj_orders]            
-
-            return rois,obj_orders,obj_ids,scores
-    
-else:
-    print("Unknown detection type")
-    sys.exit()
+    return rois,obj_orders,obj_ids,scores
 
 score_type = cfg["score_type"]
 #1-scores from a 2D detetion pipeline is used (used for the paper)
@@ -187,7 +129,6 @@ if(dataset=='itodd'):
     img_type='gray'
 else:
     img_type='rgb'
-    
 
 if("target_obj" in cfg.keys()):
     target_obj = cfg['target_obj']
@@ -205,6 +146,7 @@ if("target_obj" in cfg.keys()):
         
     model_ids = model_ids[incl_obj_id]
     
+
 print("Camera info-----------------")
 print(im_width,im_height)
 print(cam_K)
@@ -224,32 +166,7 @@ th_inlier=cfg['inlier_th']
 th_ransac=3
 
 dummy_run=False
-MODEL_DIR = os.path.join(bop_dir, "weight_detection")
-if(detect_type=='rcnn'):
-    #Load mask r_cnn
-    '''
-    standard estimation parameter for Mask R-CNN (identical for all dataset)
-    '''
-    config = BopInferenceConfig(dataset=dataset,
-                            num_classes=model_ids.shape[0]+1,#1+len(model_plys),
-                            im_width=im_width,im_height=im_height)
-    config.display()
-    model = modellib.MaskRCNN(mode="inference", config=config,
-                            model_dir=MODEL_DIR)
-    last_path = model.find_last()
-    #Load the last model you trained and continue training
-    model.load_weights(last_path, by_name=True)
-elif(detect_type=='retinanet'):
-    print("Loading weights for keras-retinanet")
-    detection_weight_fn = cfg['detection_weight']
-    model = models.load_model(os.path.join(MODEL_DIR,detection_weight_fn), backbone_name='resnet50')
 
-
-print(model_ids)
-
-model_ids = np.array([1])
-
-print(model_ids)
 '''
 Load pix2pose inference weights
 '''
@@ -264,7 +181,7 @@ else:
 for m_id,model_id in enumerate(model_ids):
     model_param = model_params['{}'.format(model_id)]
     obj_param=bop_io.get_model_params(model_param)
-    weight_dir = bop_dir+"/pix2pose_weights_temp/{:02d}".format(model_id)
+    weight_dir = bop_dir+"/pix2pose_weights/{:02d}".format(model_id)
     if(backbone=='resnet50'):
         weight_fn = os.path.join(weight_dir,"inference_resnet_model.hdf5")
         if not(os.path.exists(weight_fn)):
@@ -290,16 +207,6 @@ result_dataset=[]
 
 model_ids_list = model_ids.tolist()
 
-if(dummy_run):
-    #to activate networks before atual recognition
-    #since only the first run takes longer time
-    image_t = np.zeros((im_height,im_width,3),np.uint8)
-    if(detect_type=='rcnn'):
-        rois,obj_orders,obj_ids,scores,masks = get_rcnn_detection(image_t,model)
-    elif(detect_type=='retinanet'):
-        rois,obj_orders,obj_ids,scores = get_retinanet_detection(image_t,model)
-
-
 for scene_id,im_id,obj_id_targets,inst_counts in target_list:
     print("Recognizing scene_id:{}, im_id:{}".format(scene_id,im_id))
     if(prev_sid!=scene_id):
@@ -308,8 +215,7 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
         if(dummy_run):
             image_t = np.zeros((im_height,im_width,3),np.uint8)        
             for obj_id_target in obj_id_targets: #refreshing
-                if obj_id_target == model_ids[0]:
-                    _,_,_,_,_,_ = obj_pix2pose[model_ids_list.index(obj_id_target)].est_pose(image_t,np.array([0,0,128,128],np.int))    
+                _,_,_,_,_,_ = obj_pix2pose[model_ids_list.index(obj_id_target)].est_pose(image_t,np.array([0,0,128,128],np.int))    
     
     prev_sid=scene_id #to avoid re-load scene_camera.json
     cam_param = cam_info[im_id]
@@ -332,10 +238,21 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
     inst_count_est=np.zeros((len(inst_counts)))
     inst_count_pred = np.zeros((len(inst_counts)))
     
-    if(detect_type=='rcnn'):
-        rois,obj_orders,obj_ids,scores,masks = get_rcnn_detection(image_t,model)
-    elif(detect_type=='retinanet'):
-        rois,obj_orders,obj_ids,scores = get_retinanet_detection(image_t,model)
+    if(img_type=='gray'):
+        rgb_path = test_dir+"/{:06d}/".format(scene_id)+img_type+\
+                        "/{:06d}.tif".format(im_id)
+        image_gray = inout.load_im(rgb_path)
+        #copy gray values to three channels    
+        image_t = np.zeros((image_gray.shape[0],image_gray.shape[1],3),dtype=np.uint8)
+        #image_t[:,:,:]= np.expand_dims(image_gray,axis=2)
+        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path)
+
+    else:
+        rgb_path = test_dir+"/{:06d}/".format(scene_id)+img_type+\
+                        "/{:06d}.png".format(im_id)
+        image_t = inout.load_im(rgb_path)   
+        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path)         
+
     
     result_score=[]
     result_objid=[]
@@ -345,9 +262,7 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
     result_img=[]
     vis=False
 
-    print(len(rois))
     for r_id,roi in enumerate(rois):
-        print(r_id)
         if(roi[0]==-1 and roi[1]==-1):
             continue
         obj_id = obj_ids[r_id]        
@@ -362,7 +277,7 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
         obj_order_id = obj_orders[r_id]
         obj_pix2pose[obj_order_id].camK=cam_K.reshape(3,3)                
         img_pred,mask_pred,rot_pred,tra_pred,frac_inlier,bbox_t =\
-        obj_pix2pose[obj_order_id].est_pose(image_t,roi.astype(np.int))          
+        obj_pix2pose[obj_order_id].est_pose(image_t,roi.astype(np.int))            
         if(frac_inlier==-1):
             continue        
         score = scores[r_id]        

@@ -169,7 +169,7 @@ if load_recent_weight:
 if(recent_epoch!=-1):
     epoch = recent_epoch
     train_gen_first=False
-max_epoch=10
+max_epoch=20
 if(max_epoch==10): #lr-shcedule used in the bop challenge
     lr_schedule=[1E-3,1E-3,1E-3,1E-3,1E-3,
                 1E-3,1E-3,1E-4,1E-4,1E-4,
@@ -189,97 +189,5 @@ discriminator.trainable = True
 discriminator.compile(loss=['binary_crossentropy'],optimizer=optimizer_disc)
 discriminator.summary()
 
-N_data=datagenerator.n_data
-batch_size= 50
-batch_counter=0
-n_batch_per_epoch= min(N_data/batch_size*10,3000) #check point: every 10 epoch
-step_lr_drop=5
-
-disc_losses=[]
-recont_losses=[]
-gen_losses=[]
-pre_loss=9999
-lr_current=lr_schedule[epoch]
-
-real_ratio=1.0
-feed_iter= datagenerator.generator()
-K.set_value(discriminator.optimizer.lr, lr_current)
-K.set_value(dcgan.optimizer.lr, lr_current)
-#fed = GeneratorEnqueuer(feed_iter,use_multiprocessing=True, wait_time=5)
-fed = GeneratorEnqueuer(feed_iter,use_multiprocessing=True)
-fed.start(workers=6,max_queue_size=200)
-iter_ = fed.get()
-
-zero_target = np.zeros((batch_size))
-for X_src,X_tgt,disc_tgt,prob_gt in iter_:
-    discriminator.trainable = True
-    X_disc, y_disc = get_disc_batch(X_src,X_tgt,generator_train,0,
-                                    label_smoothing=True,label_flipping=0.2)
-    disc_loss = discriminator.train_on_batch(X_disc, y_disc)
-
-    X_disc, y_disc = get_disc_batch(X_src,X_tgt,generator_train,1,
-                                    label_smoothing=True,label_flipping=0.2)
-    disc_loss2 = discriminator.train_on_batch(X_disc, y_disc)
-    disc_loss  = (disc_loss + disc_loss2)/2
-
-    discriminator.trainable = False
-
-    dcgan_loss = dcgan.train_on_batch([X_src,X_tgt,prob_gt],[zero_target,disc_tgt])
-
-    disc_losses.append(disc_loss)
-    recont_losses.append(dcgan_loss[1])
-    gen_losses.append(dcgan_loss[2])
-
-    mean_loss = np.mean(np.array(recont_losses))
-    print("Epoch{:02d}-Iter{:03d}/{:03d}:Mean-[{:.5f}], Disc-[{:.4f}], Recon-[{:.4f}], Gen-[{:.4f}]],lr={:.6f}".format(epoch,batch_counter,int(n_batch_per_epoch),mean_loss,disc_loss,dcgan_loss[1],dcgan_loss[2],lr_current))
-    if(batch_counter>n_batch_per_epoch):
-        mean_loss = np.mean(np.array(recont_losses))
-        disc_losses=[]
-        recont_losses=[]
-        gen_losses=[]
-        batch_counter=0
-        epoch+=1
-        print('disc_loss:',disc_loss)
-        print('dcgan_loss:',dcgan_loss)
-        if( mean_loss< pre_loss):
-            print("loss improved from {:.4f} to {:.4f} saved weights".format(pre_loss,mean_loss))
-            print(weight_dir+"/"+weight_prefix+".{:02d}-{:.4f}.hdf5".format(epoch,mean_loss))
-            pre_loss=mean_loss
-        else:
-            print("loss was not improved")
-            print(weight_dir+"/"+weight_prefix+".{:02d}-{:.4f}.hdf5".format(epoch,mean_loss))
-
-        weight_save_gen = weight_dir+"/" + weight_prefix+".{:02d}_gen_{:.1f}-{:.4f}.hdf5".format(epoch,real_ratio,mean_loss)
-        weight_save_disc = weight_dir+"/" + weight_prefix+".{:02d}_disc_{:.1f}-{:.4f}.hdf5".format(epoch,real_ratio,mean_loss)
-        generator_train.save_weights(weight_save_gen)
-        discriminator.save_weights(weight_save_disc)
-        
-        gen_images,probs = generator_train.predict(X_src)
-
-        # imgfn = weight_dir+"/val_img/"+weight_prefix+"_{:02d}.png".format(epoch)
-        # if not(os.path.exists(weight_dir+"/val_img/")):
-        #     os.makedirs(weight_dir+"/val_img/")
-        
-        # f,ax=plt.subplots(10,3,figsize=(10,20))
-        # for i in range(10):
-        #     ax[i,0].imshow( (X_src[i]+1)/2)
-        #     ax[i,1].imshow( (X_tgt[i]+1)/2)
-        #     ax[i,2].imshow( (gen_images[i]+1)/2)
-        # plt.savefig(imgfn)
-        # plt.close()
-        
-        lr_current=lr_schedule[epoch]
-        K.set_value(discriminator.optimizer.lr, lr_current)
-        K.set_value(dcgan.optimizer.lr, lr_current)        
-
-    batch_counter+=1
-    if(epoch>max_epoch): 
-        print("Train finished")
-        if(backbone=='paper'):
-            #generator_train.save_weights(os.path.join(weight_dir,"inference.hdf5"))
-            generator_train.save(os.path.join(weight_dir,"inference_resnet_model.hdf5"))
-            sys.exit()  # Exit the script here          
-        else:
-            generator_train.save(os.path.join(weight_dir,"inference_resnet_model.hdf5"))
-            sys.exit()  # Exit the script here          
-        break
+generator_train.save(os.path.join(weight_dir,"inference_resnet_model.hdf5"))
+sys.exit()  # Exit the script here          
