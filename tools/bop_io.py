@@ -52,7 +52,7 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
     if(dataset=='lmo'):
       bop_dataset_dir = os.path.join(bop_dir,"lmo")
       test_dir = bop_dataset_dir+"/test"
-      train_dir = bop_dataset_dir+"/train"
+      train_dir = bop_dataset_dir+"/train_pbr"
       model_dir = bop_dataset_dir+"/models"+postfix_model
       model_scale=0.001
     if(dataset=='lmo_random_texture_all'):
@@ -144,6 +144,7 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
     rgb_files=[]
     depth_files=[]
     mask_files=[]
+    mask_visib_files=[]
     gts=[]
     params=[]
     model_ids = []
@@ -182,7 +183,9 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
                                 mask_fn = os.path.join(current_dir+"/mask","{:06d}.png".format(im_id))
                             else:
                                 mask_fn = os.path.join(current_dir+"/mask","{:06d}_000000.png".format(im_id))
+                                mask_visib_fn = os.path.join(current_dir+"/mask_visib","{:06d}_000000.png".format(im_id))
                             mask_files.append(mask_fn)
+                            mask_visib_files.append(mask_visib_fn)
                         rgb_files.append(rgb_fn)
                         depth_files.append(depth_fn)
                         if(has_gt):gts.append(scene_gts[im_id])
@@ -191,6 +194,6 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
         target_dir =test_dir    
                  
     if(incl_param):
-        return bop_dataset_dir,target_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_files,gts,cam_param_global,params
+        return bop_dataset_dir,target_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_files,mask_visib_files,gts,cam_param_global,params
     else:
-        return bop_dataset_dir,target_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_files,gts,cam_param_global
+        return bop_dataset_dir,target_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_files,mask_visib_files,gts,cam_param_global

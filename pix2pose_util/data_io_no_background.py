@@ -6,12 +6,13 @@ from skimage.transform import resize,rotate
 from skimage.filters import gaussian
 from imgaug import augmenters as iaa
 
+from matplotlib import pyplot as plt
+
 import numpy as np
 import random
 
 class data_generator():
-    def __init__(self,data_dir, back_dir,
-                 batch_size=50,gan=True,imsize=128,
+    def __init__(self,data_dir,batch_size=50,gan=True,imsize=128,
                  res_x=640,res_y=480,
                  **kwargs):
         '''
@@ -21,11 +22,9 @@ class data_generator():
         gan: if False, gt for GAN is not yielded
         '''
         self.data_dir = data_dir
-        self.back_dir = back_dir
         self.imsize=imsize
         self.batch_size = batch_size
         self.gan = gan
-        self.backfiles = os.listdir(back_dir)
         data_list = os.listdir(data_dir)
         self.datafiles=[]
         self.res_x=res_x
@@ -36,7 +35,6 @@ class data_generator():
                 self.datafiles.append(file)
 
         self.n_data = len(self.datafiles)
-        self.n_background = len(self.backfiles)
         print("Total training views:", self.n_data)
 
         self.seq_syn= iaa.Sequential([
@@ -65,39 +63,73 @@ class data_generator():
         p_width = p_xyz.shape[1]
         p_mask_no_occ = np.sum(p_xyz,axis=2)>0
         p_xyz[np.invert(p_mask_no_occ)]=[0.5,0.5,0.5]
-        back_fn = self.backfiles[int(random.random()*(self.n_background-1))]
-        back_img = io.imread(self.back_dir+"/"+back_fn)
-        if back_img.ndim != 3:
-            back_img = skimage.color.gray2rgb(back_img)
-        back_img = back_img.astype(np.float32)/255
-        need_resize=False
-        desired_size_h=desired_size_w=0
-        if(back_img.shape[0] < p_xyz.shape[0]*2):
-            desired_size_h=p_xyz.shape[0]*2
-            need_resize=True
-        if(back_img.shape[1] < p_xyz.shape[1]*2):
-            desired_size_w=p_xyz.shape[1]*2
-            need_resize=True
-        if(need_resize):
-            back_img = resize(back_img,(max(desired_size_h,back_img.shape[0]),max(desired_size_w,back_img.shape[1])),order=1,mode='reflect')
+
+        # plt.imshow(p_xyz)
+        # plt.title('before resizing')
+        # plt.show()
 
         img_augmented = self.seq_syn.augment_image(real_img*255)/255
-        v_limit = back_img.shape[0]-real_img.shape[0]-20
-        u_limit = back_img.shape[1]-real_img.shape[1]-20
-        v_ref =int(random.random()*v_limit+10)
-        u_ref =int(random.random()*u_limit+10)
-        
-        #rotate -15 to 15 degree
-        r_angle = random.random()*30-15
-        base_image = rotate(img_augmented, r_angle,mode='reflect')
-        tgt_image =  rotate(p_xyz, r_angle,mode='reflect')
-        mask_area_crop = rotate(p_mask_no_occ.astype(np.float),r_angle)
-        
-        src_image_resized = resize(base_image,(self.imsize,self.imsize),order=1,mode='reflect')
-        tgt_image_resized = resize(tgt_image,(self.imsize,self.imsize),order=1,mode='reflect')
-        mask_area_resized = resize(mask_area_crop,(self.imsize,self.imsize),order=1,mode='reflect')
 
-        return src_image_resized,tgt_image_resized,mask_area_resized    
+        #rotate -15 to 15 degree
+        #random flip and rotation is also possible --> good for you!
+
+        #r_angle = random.random()*30-15
+        #base_image = rotate(img_augmented, r_angle,mode='reflect')
+        #tgt_image =  rotate(p_xyz, r_angle,mode='reflect')
+
+        #mask_area_crop = rotate(p_mask_no_occ.astype(np.float),r_angle)
+        
+        # Calculate scaling factors for maintaining aspect ratio
+        scaling_factor = min(self.imsize / real_img.shape[0], self.imsize / real_img.shape[1])
+
+        # Calculate new dimensions after maintaining aspect ratio
+        new_height = int(real_img.shape[0] * scaling_factor)
+        new_width = int(real_img.shape[1] * scaling_factor)
+
+        # Calculate the amount of padding needed to center the object
+        pad_height_top = max(0, (self.imsize - new_height) // 2)
+        pad_height_bottom = self.imsize - new_height - pad_height_top
+        pad_width_left = max(0, (self.imsize - new_width) // 2)
+        pad_width_right = self.imsize - new_width - pad_width_left
+
+        # Resize base_image, tgt_image, and mask_image
+        src_image_resized = resize(img_augmented, (new_height, new_width), order=1, mode='reflect')
+        tgt_image_resized = resize(p_xyz, (new_height, new_width), order=1, mode='reflect')
+        mask_area_resized = resize(p_mask_no_occ.astype(np.float), (new_height, new_width), order=1, mode='reflect')
+
+        # Create a new canvas of the desired size (128x128) and fill with gray
+        src_image_final = np.full((self.imsize, self.imsize, 3), 0.5, dtype=np.float32)
+        tgt_image_final = np.full((self.imsize, self.imsize, 3), 0.5, dtype=np.float32)
+        mask_area_final = np.full((self.imsize, self.imsize), 0, dtype=np.float32)
+
+        # Place the resized images at the center of the canvas
+        src_image_final[pad_height_top:pad_height_top + new_height, pad_width_left:pad_width_left + new_width] = src_image_resized
+        tgt_image_final[pad_height_top:pad_height_top + new_height, pad_width_left:pad_width_left + new_width] = tgt_image_resized
+        mask_area_final[pad_height_top:pad_height_top + new_height, pad_width_left:pad_width_left + new_width] = mask_area_resized
+
+        src_image_final = src_image_final.astype(np.float64)
+        src_image_final = (src_image_final - 0.5) * 2.0
+
+        tgt_image_final = tgt_image_final.astype(np.float64)
+        tgt_image_final = (tgt_image_final - 0.5) * 2.0
+
+        mask_area_final = mask_area_final.astype(np.float64)
+
+        # print("src_image_final: ", src_image_final.dtype)
+        # print("tgt_image_final: ", tgt_image_final.dtype)
+        # print("mask_area_final: ", mask_area_final.dtype)
+
+        # plt.imshow(src_image_final)
+        # plt.title('after resizing')
+        # plt.show()
+        # plt.imshow(tgt_image_final)
+        # plt.title('after resizing')
+        # plt.show()
+        # plt.imshow(mask_area_final)
+        # plt.title('after resizing')
+        # plt.show()
+
+        return src_image_final,tgt_image_final,mask_area_final    
 
     def generator(self):
         scene_seq = np.arange(self.n_data)
@@ -121,7 +153,6 @@ class data_generator():
 
             s_img,t_img,mask_area = self.get_patch_pair(v_id,batch_count)
             batch_src[batch_index] = s_img
-
             batch_tgt[batch_index] =t_img
             batch_prob[batch_index,:,:,0] =mask_area
             batch_index+=1

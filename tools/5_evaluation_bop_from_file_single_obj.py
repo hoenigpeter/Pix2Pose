@@ -16,8 +16,8 @@ ROOT_DIR = os.path.abspath(".")
 sys.path.append(ROOT_DIR)  # To find local version of the library
 sys.path.append("./bop_toolkit")
 
-if(len(sys.argv)!=4):
-    print("python3 tools/5_evaluation_bop_basic.py [gpu_id] [cfg file] [dataset_name]")
+if(len(sys.argv)!=5):
+    print("python3 tools/5_evaluation_bop_basic.py [gpu_id] [cfg file] [dataset_name] [obj_id]")
     sys.exit()
     
 gpu_id = sys.argv[1]
@@ -61,7 +61,7 @@ for scene_image_id, detections in data.items():
         image_path = f"{scene_id:06d}/rgb/{image_id:06d}.png"
     image_detection_map[image_path] = detections
 
-def get_gt_detection(path):
+def get_gt_detection(path, obj_id):
     print(path)
     if sys.argv[3] == "tless":
         relative_image_path = path.split('primesense/')[1]
@@ -88,13 +88,30 @@ def get_gt_detection(path):
     obj_orders = np.array(obj_orders)
     scores = np.array(scores)
 
-    print()
-    print("rois: ", rois)
-    print("obj_orders: ", obj_orders)
-    print("obj_ids: ", obj_ids)
-    print("scores: ", scores)
+    # Filter the results based on obj_id
+    mask = obj_orders == obj_id
+    if not np.any(mask):
+        # No matches found, return empty arrays
+        return np.array([]), np.array([]), np.array([]), np.array([])
 
-    return rois,obj_orders,obj_ids,scores
+    rois_filtered = rois[mask]
+    obj_orders_filtered = obj_orders[mask]
+    obj_ids_filtered = obj_ids[mask]
+    scores_filtered = scores[mask]
+
+    print()
+    print("rois: ", rois_filtered)
+    print("obj_orders: ", obj_orders_filtered)
+    print("obj_ids: ", obj_ids_filtered)
+    print("scores: ", scores_filtered)
+
+    # print()
+    # print("rois: ", rois)
+    # print("obj_orders: ", obj_orders)
+    # print("obj_ids: ", obj_ids)
+    # print("scores: ", scores)
+
+    return rois_filtered,obj_orders_filtered,obj_ids_filtered,scores_filtered
 
 score_type = cfg["score_type"]
 #1-scores from a 2D detetion pipeline is used (used for the paper)
@@ -146,7 +163,6 @@ if("target_obj" in cfg.keys()):
         
     model_ids = model_ids[incl_obj_id]
     
-
 print("Camera info-----------------")
 print(im_width,im_height)
 print(cam_K)
@@ -178,6 +194,14 @@ if( 'backbone' in cfg.keys()):
     backbone = cfg['backbone']
 else:
     backbone = 'paper'
+
+print()
+print("dataset: ", sys.argv[3])
+print("obj_id: ", sys.argv[4])
+print(model_ids)
+
+model_ids = [int(sys.argv[4])]
+
 for m_id,model_id in enumerate(model_ids):
     model_param = model_params['{}'.format(model_id)]
     obj_param=bop_io.get_model_params(model_param)
@@ -199,13 +223,16 @@ for m_id,model_id in enumerate(model_ids):
     obj_pix2pose.append(recog_temp)    
     obj_names.append(model_id)
 
+
 test_target_fn = cfg['test_target']
 target_list = bop_io.get_target_list(os.path.join(bop_dir,test_target_fn+".json"))
 
 prev_sid=-1
 result_dataset=[]
 
-model_ids_list = model_ids.tolist()
+print(model_ids)
+
+model_ids_list = model_ids
 
 for scene_id,im_id,obj_id_targets,inst_counts in target_list:
     print("Recognizing scene_id:{}, im_id:{}".format(scene_id,im_id))
@@ -245,13 +272,13 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
         #copy gray values to three channels    
         image_t = np.zeros((image_gray.shape[0],image_gray.shape[1],3),dtype=np.uint8)
         #image_t[:,:,:]= np.expand_dims(image_gray,axis=2)
-        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path)
+        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path, model_ids[0]-1)
 
     else:
         rgb_path = test_dir+"/{:06d}/".format(scene_id)+img_type+\
                         "/{:06d}.png".format(im_id)
         image_t = inout.load_im(rgb_path)   
-        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path)         
+        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path, model_ids[0]-1)         
 
     
     result_score=[]
@@ -316,9 +343,9 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
 
 
 if(dataset=='tless'):
-    output_path = os.path.join(output_dir,"pix2pose-iccv19_"+dataset+"-test-primesense.csv")
+    output_path = os.path.join(output_dir,"pix2pose-iccv19_"+dataset+"-"+sys.argv[4]+"-test-primesense.csv")
 else:
-    output_path = os.path.join(output_dir,"pix2pose-iccv19_"+dataset+"-test.csv")
+    output_path = os.path.join(output_dir,"pix2pose-iccv19_"+dataset+"-"+sys.argv[4]+"-test.csv")
 
 print("Saving the result to ",output_path)
 inout.save_bop_results(output_path,result_dataset)

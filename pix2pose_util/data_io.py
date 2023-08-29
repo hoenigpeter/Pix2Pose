@@ -6,6 +6,8 @@ from skimage.transform import resize,rotate
 from skimage.filters import gaussian
 from imgaug import augmenters as iaa
 
+from matplotlib import pyplot as plt
+
 import numpy as np
 import random
 
@@ -89,6 +91,7 @@ class data_generator():
         u_limit = back_img.shape[1]-real_img.shape[1]-20
         v_ref =int(random.random()*v_limit+10)
         u_ref =int(random.random()*u_limit+10)
+
         #combine two image
         p_back_img = back_img[v_ref:v_ref+p_height,u_ref:u_ref+p_width]
         img_augmented[np.invert(p_mask_no_occ)]=p_back_img[np.invert(p_mask_no_occ)]
@@ -271,6 +274,20 @@ class data_generator():
         tgt_image_resized = resize(tgt_image,(self.imsize,self.imsize),order=1,mode='reflect')
         mask_area_resized = resize(mask_area_crop,(self.imsize,self.imsize),order=1,mode='reflect')
 
+        # print("src_image_resized: ", src_image_resized.dtype)
+        # print("tgt_image_resized: ", tgt_image_resized.dtype)
+        # print("mask_area_resized: ", mask_area_resized.dtype)
+
+        # plt.imshow(src_image_resized)
+        # plt.title('after resizing')
+        # plt.show()
+        # plt.imshow(tgt_image_resized)
+        # plt.title('after resizing')
+        # plt.show()
+        # plt.imshow(mask_area_resized)
+        # plt.title('after resizing')
+        # plt.show()
+
         return src_image_resized,tgt_image_resized,mask_area_resized
 
 
@@ -295,6 +312,7 @@ class data_generator():
                 np.random.shuffle(scene_seq)
 
             s_img,t_img,mask_area = self.get_patch_pair(v_id,batch_count)
+
             batch_src[batch_index] = s_img
 
             batch_tgt[batch_index] =t_img

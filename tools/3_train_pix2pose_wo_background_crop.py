@@ -2,8 +2,8 @@ import os,sys
 import transforms3d as tf3d
 from math import radians
 
-if(len(sys.argv)!=6):
-    print("python3 tools/3_train_pix2pose.py <gpu_id> <cfg_fn> <dataset> <obj_id> <dir_to_background_imgs>")
+if(len(sys.argv)!=5):
+    print("python3 tools/3_train_pix2pose_wo_background_crop.py <gpu_id> <cfg_fn> <dataset> <obj_id>")
     sys.exit()
 
 gpu_id = sys.argv[1]
@@ -78,24 +78,22 @@ loss_weights = [100,1]
 train_gen_first = False
 load_recent_weight = True
 
-
 dataset=sys.argv[3]
 
 cfg_fn = sys.argv[2] #"cfg/cfg_bop2019.json"
 cfg = inout.load_json(cfg_fn)
 
-bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_files,gts,cam_param_global,scene_cam = bop_io.get_dataset(cfg,dataset,incl_param=True)
+bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_files,mask_visib_files,gts,cam_param_global,scene_cam = bop_io.get_dataset(cfg,dataset,incl_param=True)
 im_width,im_height =cam_param_global['im_size'] 
 weight_prefix = "pix2pose" 
 obj_id = int(sys.argv[4]) #identical to the number for the ply file.
 weight_dir = bop_dir+"/pix2pose_weights_no_bg/{:02d}".format(obj_id)
 if not(os.path.exists(weight_dir)):
         os.makedirs(weight_dir)
-back_dir = sys.argv[5]
 data_dir = bop_dir+"/train_xyz/{:02d}".format(obj_id)
 
-batch_size=50
-datagenerator = dataio.data_generator(data_dir,back_dir,batch_size=batch_size,res_x=im_width,res_y=im_height)
+batch_size=25
+datagenerator = dataio.data_generator(data_dir,batch_size=batch_size,res_x=im_width,res_y=im_height)
 
 m_info = model_info['{}'.format(obj_id)]
 keys = m_info.keys()
@@ -169,7 +167,7 @@ if load_recent_weight:
 if(recent_epoch!=-1):
     epoch = recent_epoch
     train_gen_first=False
-max_epoch=10
+max_epoch=20
 if(max_epoch==10): #lr-shcedule used in the bop challenge
     lr_schedule=[1E-3,1E-3,1E-3,1E-3,1E-3,
                 1E-3,1E-3,1E-4,1E-4,1E-4,
@@ -190,7 +188,7 @@ discriminator.compile(loss=['binary_crossentropy'],optimizer=optimizer_disc)
 discriminator.summary()
 
 N_data=datagenerator.n_data
-batch_size= 50
+batch_size=25
 batch_counter=0
 n_batch_per_epoch= min(N_data/batch_size*10,3000) #check point: every 10 epoch
 step_lr_drop=5
@@ -212,7 +210,10 @@ iter_ = fed.get()
 
 zero_target = np.zeros((batch_size))
 for X_src,X_tgt,disc_tgt,prob_gt in iter_:
+    start_time = time.time()
+    
     discriminator.trainable = True
+
     X_disc, y_disc = get_disc_batch(X_src,X_tgt,generator_train,0,
                                     label_smoothing=True,label_flipping=0.2)
     disc_loss = discriminator.train_on_batch(X_disc, y_disc)
@@ -231,7 +232,27 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
     gen_losses.append(dcgan_loss[2])
 
     mean_loss = np.mean(np.array(recont_losses))
-    print("Epoch{:02d}-Iter{:03d}/{:03d}:Mean-[{:.5f}], Disc-[{:.4f}], Recon-[{:.4f}], Gen-[{:.4f}]],lr={:.6f}".format(epoch,batch_counter,int(n_batch_per_epoch),mean_loss,disc_loss,dcgan_loss[1],dcgan_loss[2],lr_current))
+
+    end_time = time.time()
+
+    iteration_time = end_time - start_time
+
+    print("Epoch{:02d}-Iter{:03d}/{:03d}:Mean-[{:.5f}], Disc-[{:.4f}], Recon-[{:.4f}], Gen-[{:.4f}]], lr={:.6f}, time={:.4f} s".format(epoch,batch_counter,int(n_batch_per_epoch),mean_loss,disc_loss,dcgan_loss[1],dcgan_loss[2],lr_current,iteration_time))
+
+    if batch_counter%100==0: 
+        imgfn = weight_dir+"/val_img/"+weight_prefix+"_{:02d}.jpg".format(batch_counter+epoch*100000)
+        if not(os.path.exists(weight_dir+"/val_img/")):
+            os.makedirs(weight_dir+"/val_img/")
+
+        gen_images,probs = generator_train.predict(X_src)
+        f,ax=plt.subplots(10,3,figsize=(10,20))
+        for i in range(10):
+            ax[i,0].imshow( (X_src[i]+1)/2)
+            ax[i,1].imshow( (X_tgt[i]+1)/2)
+            ax[i,2].imshow( (gen_images[i]+1)/2)
+        plt.savefig(imgfn)
+        plt.close()
+    
     if(batch_counter>n_batch_per_epoch):
         mean_loss = np.mean(np.array(recont_losses))
         disc_losses=[]
@@ -276,7 +297,9 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
     if(epoch>max_epoch): 
         print("Train finished")
         if(backbone=='paper'):
-            generator_train.save_weights(os.path.join(weight_dir,"inference.hdf5"))        
+            #generator_train.save_weights(os.path.join(weight_dir,"inference.hdf5"))
+            generator_train.save(os.path.join(weight_dir,"inference_resnet_model.hdf5"))
+            sys.exit()  # Exit the script here          
         else:
             generator_train.save(os.path.join(weight_dir,"inference_resnet_model.hdf5"))
             sys.exit()  # Exit the script here          

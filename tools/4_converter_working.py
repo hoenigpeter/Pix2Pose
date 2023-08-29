@@ -2,8 +2,8 @@ import os,sys
 import transforms3d as tf3d
 from math import radians
 
-if(len(sys.argv)!=6):
-    print("python3 tools/3_train_pix2pose.py <gpu_id> <cfg_fn> <dataset> <obj_id> <dir_to_background_imgs>")
+if(len(sys.argv)!=5):
+    print("python3 tools/3_train_pix2pose.py <gpu_id> <cfg_fn> <dataset> <obj_id>")
     sys.exit()
 
 gpu_id = sys.argv[1]
@@ -45,58 +45,25 @@ session = tf.compat.v1.Session(config=configuration)
 def dummy_loss(y_true,y_pred):
     return y_pred
 
-def get_disc_batch(X_src, X_tgt, generator_model, batch_counter,label_smoothing=False,label_flipping=0):    
-    if batch_counter % 2 == 0:        
-        X_disc,prob_dummy = generator_model.predict(X_src)        
-        y_disc = np.zeros((X_disc.shape[0], 1), dtype=np.uint8)
-        if label_smoothing:
-            y_disc = np.random.uniform(low=0.0, high=0.1, size=y_disc.shape[0])            
-        else:
-            y_disc = 0
-            
-        if label_flipping > 0:
-            p = np.random.binomial(1, label_flipping)
-            if p > 0:
-                y_disc[:] = 1
-    else:
-        X_disc = X_tgt
-        y_disc = np.zeros((X_disc.shape[0], 2), dtype=np.uint8)
-        if label_smoothing:
-            y_disc = np.random.uniform(low=0.9, high=1.0, size=y_disc.shape[0])                
-        else:
-            y_disc = 1                
-        if label_flipping > 0:
-            p = np.random.binomial(1, label_flipping)
-            if p > 0:
-                y_disc[:] = 0
-
-    return X_disc, y_disc
-
-
-
 loss_weights = [100,1]
 train_gen_first = False
 load_recent_weight = True
-
 
 dataset=sys.argv[3]
 
 cfg_fn = sys.argv[2] #"cfg/cfg_bop2019.json"
 cfg = inout.load_json(cfg_fn)
 
-bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_files,gts,cam_param_global,scene_cam = bop_io.get_dataset(cfg,dataset,incl_param=True)
+bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_files,mask_visib_files,gts,cam_param_global,scene_cam = bop_io.get_dataset(cfg,dataset,incl_param=True)
 im_width,im_height =cam_param_global['im_size'] 
 weight_prefix = "pix2pose" 
 obj_id = int(sys.argv[4]) #identical to the number for the ply file.
 weight_dir = bop_dir+"/pix2pose_weights/{:02d}".format(obj_id)
 if not(os.path.exists(weight_dir)):
         os.makedirs(weight_dir)
-back_dir = sys.argv[5]
 data_dir = bop_dir+"/train_xyz/{:02d}".format(obj_id)
 
 batch_size=50
-datagenerator = dataio.data_generator(data_dir,back_dir,batch_size=batch_size,res_x=im_width,res_y=im_height)
-
 m_info = model_info['{}'.format(obj_id)]
 keys = m_info.keys()
 sym_pool=[]
@@ -165,21 +132,6 @@ if load_recent_weight:
         print("load recent weights from", weight_dir+"/"+weight_save_disc)
         discriminator.load_weights(os.path.join(weight_dir,weight_save_disc))
    
-
-if(recent_epoch!=-1):
-    epoch = recent_epoch
-    train_gen_first=False
-max_epoch=20
-if(max_epoch==10): #lr-shcedule used in the bop challenge
-    lr_schedule=[1E-3,1E-3,1E-3,1E-3,1E-3,
-                1E-3,1E-3,1E-4,1E-4,1E-4,
-                1E-5,1E-5,1E-5,1E-5,1E-6,
-                1E-6,1E-6,1E-6,1E-6,1E-7]
-elif(max_epoch==20): #lr-shcedule used in the paper
-    lr_schedule=[1E-3,1E-3,1E-3,1E-3,1E-3,
-                1E-3,1E-3,1E-3,1E-3,1E-4,
-                1E-4,1E-4,1E-4,1E-4,1E-4,
-                1E-4,1E-4,1E-4,1E-4,1E-5]
 
 dcgan.compile(loss=[dummy_loss, 'binary_crossentropy'],
                 loss_weights=loss_weights ,optimizer=optimizer_dcgan)

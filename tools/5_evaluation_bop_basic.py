@@ -355,8 +355,6 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
         if(task_type=='2' and total_inst>n_inst): #for vivo task
             break        
  
-
-
 if(dataset=='tless'):
     output_path = os.path.join(output_dir,"pix2pose-iccv19_"+dataset+"-test-primesense.csv")
 else:

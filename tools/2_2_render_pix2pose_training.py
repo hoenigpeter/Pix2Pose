@@ -51,17 +51,6 @@ def get_sympose(rot_pose,sym):
 
     return rot_pose,rotation_lock
 def get_rendering(obj_model,rot_pose,tra_pose, ren):
-    # ren.clear()
-    # M=np.eye(4)
-    # M[:3,:3]=rot_pose
-    # M[:3,3]=tra_pose
-    # ren.draw_model(obj_model, M)
-    # img_r, depth_rend = ren.finish()
-    # img_r = img_r[:,:,::-1] *255    
-    # vu_valid = np.where(depth_rend>0)
-    # bbox_gt = np.array([np.min(vu_valid[0]),np.min(vu_valid[1]),np.max(vu_valid[0]),np.max(vu_valid[1])])
-    # return img_r,depth_rend,bbox_gt
-
     ren.clear()
     M = np.eye(4)
     M[:3, :3] = rot_pose
@@ -128,7 +117,7 @@ else:
 
     dataset=sys.argv[2]
     bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,\
-        depth_files,mask_files,gts,cam_param_global,scene_cam =\
+        depth_files,mask_files,mask_visib_files,gts,cam_param_global,scene_cam =\
              bop_io.get_dataset(cfg,dataset,incl_param=True)
     
     xyz_target_dir = bop_dir+"/train_xyz"
@@ -204,84 +193,17 @@ for m_id,model_id in enumerate(model_ids):
                     new_data[:,:,6:] = (resize(data[:,:,6:],(new_shape[0],new_shape[1]))>0.5).astype(np.uint8)
             else:
                 new_data= data
-            np.save(xyz_fn,new_data)
+
+            if new_data[:,:,3:6].shape[0] > 20 and new_data[:,:,3:6].shape[1] > 20 and new_data[:,:,:3].shape[0] > 20 and new_data[:,:,:3].shape[1] > 20:
+                print("Either the first or the second number in the shape array is 0")
+                plt.imshow(new_data[:,:,:3])
+                plt.title('after resizing')
+                plt.show()
+                plt.imshow(new_data[:,:,3:6])
+                plt.title('after resizing')
+                plt.show()
+                np.save(xyz_fn,new_data)
             
-            if(augment_inplane>0 and not(rotation_lock)):
-                augment_inplane_gen(xyz_id,img,img_r,depth_rend,mask,isYCB=False,step=augment_inplane)
+                if(augment_inplane>0 and not(rotation_lock)):
+                    augment_inplane_gen(xyz_id,img,img_r,depth_rend,mask,isYCB=False,step=augment_inplane)
             xyz_id+=1
-        if(dataset == "ycbv"):
-            #for ycbv, exceptionally extract patches
-            #from cluttered training images. 
-            print("using real images for training")
-            train_real_dir = bop_dir+"/train_real"
-            for folder in sorted(os.listdir(train_real_dir)):
-                sub_dir = os.path.join(train_real_dir,folder)
-                print("Processing:",sub_dir)
-                scene_gt_fn =os.path.join(sub_dir,"scene_gt.json")
-                scene_gts = inout.load_scene_gt(scene_gt_fn)
-                scene_gt_info = inout.load_json(os.path.join(sub_dir,"scene_gt_info.json"))
-                scene_cam_fn = os.path.join(sub_dir,"scene_camera.json")
-                scene_cam_real = inout.load_scene_camera(scene_cam_fn)
-                scene_keys = scene_gts.keys()
-                n_scene =len(scene_keys)
-                for img_id in np.arange(1,n_scene,100):
-                    im_id = img_id
-                    rgb_fn = os.path.join(sub_dir+"/rgb","{:06d}.png".format(im_id))
-                    print(rgb_fn)
-                    gts_real = scene_gts[im_id]
-                    scene_info = scene_gt_info["{}".format(im_id)]
-                    for gt_id in range(len(gts_real)):
-                        gt = gts_real[gt_id]
-                        obj_id = int(gt['obj_id'])
-                        bbox = scene_info[gt_id]['bbox_obj']
-                        visib_fract = scene_info[gt_id]['visib_fract']
-                        #skip objects in the boundary
-                        if(obj_id !=int(model_id) or visib_fract<0.5):
-                            continue            
-                        if( (bbox[0]+bbox[2]) > (im_width-10) or  (bbox[1]+bbox[3]) > (im_height-10) ):
-                            continue                        
-                        if ( (bbox[0] < 10) or  (bbox[1]<10)):
-                            continue                        
-                        mask_img_fn = os.path.join(os.path.join(sub_dir,"mask_visib"),"{:06d}_{:06d}.png".format(im_id,gt_id))
-                        mask_img = io.imread(mask_img_fn)
-                        mask_obj = mask_img>0
-                        
-                        xyz_fn = os.path.join(xyz_dir,"{:06d}.npy".format(xyz_id))
-                        rgb_fn = rgb_fn    
-                        cam_K = np.array(scene_cam_real[img_id]["cam_K"]).reshape(3,3)
-                        ren.set_cam(cam_K)
-                        tra_pose = np.array((gt['cam_t_m2c']/1000))[:,0]
-                        rot_pose = np.array(gt['cam_R_m2c']).reshape(3,3)                        
-                        
-                        img = inout.load_im(rgb_fn)               
-                        mask = inout.load_im(mask_files[img_id])>0
-                        rot_pose,rotation_lock = get_sympose(rot_pose,sym_continous)
-                        img_r,depth_rend,bbox_gt = get_rendering(obj_model,rot_pose,tra_pose,ren)
-                        img[depth_rend==0]=[128,128,128]
-                        if(bbox_gt[2]-bbox_gt[0]==0 or bbox_gt[3]-bbox_gt[1]==0):
-                            continue
-                        if(bbox_gt[2]-bbox_gt[0]<10) and (bbox_gt[3]-bbox_gt[1]<10):
-                            continue
-                        #for YCB real images -> visible mask added
-                        img_npy = np.zeros((bbox_gt[2]-bbox_gt[0],bbox_gt[3]-bbox_gt[1],7),np.uint8)
-                        img_npy[:,:,:3]=img[bbox_gt[0]:bbox_gt[2],bbox_gt[1]:bbox_gt[3]]
-                        img_npy[:,:,3:6]=img_r[bbox_gt[0]:bbox_gt[2],bbox_gt[1]:bbox_gt[3]]
-                        img_npy[:,:,6]=mask[bbox_gt[0]:bbox_gt[2],bbox_gt[1]:bbox_gt[3]]
-                        data=img_npy
-                        max_axis=max(data.shape[0],data.shape[1])
-                        if(max_axis>128):
-                            #resize to 128 
-                            scale = 128.0/max_axis #128/200, 200->128
-                            new_shape=np.array([data.shape[0]*scale+0.5,data.shape[1]*scale+0.5]).astype(np.int) 
-                            new_data = np.zeros((new_shape[0],new_shape[1],data.shape[2]),data.dtype)
-                            new_data[:,:,:3] = resize( (data[:,:,:3]/255).astype(np.float32),(new_shape[0],new_shape[1]))*255
-                            new_data[:,:,3:6] = resize( (data[:,:,3:6]/255).astype(np.float32),(new_shape[0],new_shape[1]))*255
-                            if(data.shape[2]>6):
-                                new_data[:,:,6:] = (resize(data[:,:,6:],(new_shape[0],new_shape[1]))>0.5).astype(np.uint8)
-                        else:
-                            new_data=img_npy
-                        
-                        np.save(xyz_fn,new_data)
-                        if(augment_inplane>0 and not(rotation_lock)):
-                            augment_inplane_gen(xyz_id,img,img_r,depth_rend,mask,isYCB=True,step=augment_inplane)
-                        xyz_id+=1

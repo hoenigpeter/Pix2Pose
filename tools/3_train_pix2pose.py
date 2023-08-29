@@ -1,6 +1,7 @@
 import os,sys
 import transforms3d as tf3d
 from math import radians
+from matplotlib import pyplot as plt
 
 if(len(sys.argv)!=6):
     print("python3 tools/3_train_pix2pose.py <gpu_id> <cfg_fn> <dataset> <obj_id> <dir_to_background_imgs>")
@@ -71,8 +72,6 @@ def get_disc_batch(X_src, X_tgt, generator_model, batch_counter,label_smoothing=
                 y_disc[:] = 0
 
     return X_disc, y_disc
-
-
 
 loss_weights = [100,1]
 train_gen_first = False
@@ -190,7 +189,7 @@ discriminator.compile(loss=['binary_crossentropy'],optimizer=optimizer_disc)
 discriminator.summary()
 
 N_data=datagenerator.n_data
-batch_size= 50
+batch_size=50
 batch_counter=0
 n_batch_per_epoch= min(N_data/batch_size*10,3000) #check point: every 10 epoch
 step_lr_drop=5
@@ -213,6 +212,7 @@ iter_ = fed.get()
 zero_target = np.zeros((batch_size))
 for X_src,X_tgt,disc_tgt,prob_gt in iter_:
     discriminator.trainable = True
+
     X_disc, y_disc = get_disc_batch(X_src,X_tgt,generator_train,0,
                                     label_smoothing=True,label_flipping=0.2)
     disc_loss = discriminator.train_on_batch(X_disc, y_disc)
@@ -232,6 +232,21 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
 
     mean_loss = np.mean(np.array(recont_losses))
     print("Epoch{:02d}-Iter{:03d}/{:03d}:Mean-[{:.5f}], Disc-[{:.4f}], Recon-[{:.4f}], Gen-[{:.4f}]],lr={:.6f}".format(epoch,batch_counter,int(n_batch_per_epoch),mean_loss,disc_loss,dcgan_loss[1],dcgan_loss[2],lr_current))
+    
+    if batch_counter%100==0: 
+        imgfn = weight_dir+"/val_img/"+weight_prefix+"_{:02d}.png".format(batch_counter)
+        if not(os.path.exists(weight_dir+"/val_img/")):
+            os.makedirs(weight_dir+"/val_img/")
+
+        gen_images,probs = generator_train.predict(X_src)
+        f,ax=plt.subplots(10,3,figsize=(10,20))
+        for i in range(10):
+            ax[i,0].imshow( (X_src[i]+1)/2)
+            ax[i,1].imshow( (X_tgt[i]+1)/2)
+            ax[i,2].imshow( (gen_images[i]+1)/2)
+        plt.savefig(imgfn)
+        plt.close()
+    
     if(batch_counter>n_batch_per_epoch):
         mean_loss = np.mean(np.array(recont_losses))
         disc_losses=[]
@@ -255,18 +270,6 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
         discriminator.save_weights(weight_save_disc)
         
         gen_images,probs = generator_train.predict(X_src)
-
-        # imgfn = weight_dir+"/val_img/"+weight_prefix+"_{:02d}.png".format(epoch)
-        # if not(os.path.exists(weight_dir+"/val_img/")):
-        #     os.makedirs(weight_dir+"/val_img/")
-        
-        # f,ax=plt.subplots(10,3,figsize=(10,20))
-        # for i in range(10):
-        #     ax[i,0].imshow( (X_src[i]+1)/2)
-        #     ax[i,1].imshow( (X_tgt[i]+1)/2)
-        #     ax[i,2].imshow( (gen_images[i]+1)/2)
-        # plt.savefig(imgfn)
-        # plt.close()
         
         lr_current=lr_schedule[epoch]
         K.set_value(discriminator.optimizer.lr, lr_current)
