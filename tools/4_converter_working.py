@@ -58,12 +58,10 @@ bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_fi
 im_width,im_height =cam_param_global['im_size'] 
 weight_prefix = "pix2pose" 
 obj_id = int(sys.argv[4]) #identical to the number for the ply file.
-weight_dir = bop_dir+"/pix2pose_weights/{:02d}".format(obj_id)
+weight_dir = bop_dir+"/pix2pose_weights_no_bg/{:02d}".format(obj_id)
 if not(os.path.exists(weight_dir)):
         os.makedirs(weight_dir)
-data_dir = bop_dir+"/train_xyz/{:02d}".format(obj_id)
 
-batch_size=50
 m_info = model_info['{}'.format(obj_id)]
 keys = m_info.keys()
 sym_pool=[]

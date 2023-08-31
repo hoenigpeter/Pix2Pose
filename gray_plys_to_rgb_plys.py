@@ -2,8 +2,8 @@ import os
 import trimesh
 from trimesh.visual import ColorVisuals
 
-source_folder = "pix2pose_datasets/itodd/models"
-target_folder = "pix2pose_datasets/itodd/models_converted"
+source_folder = "pix2pose_datasets/tless/models"
+target_folder = "pix2pose_datasets/tless/models_converted"
 
 def add_color_to_ply(source_path, target_path):
     mesh = trimesh.load(source_path)

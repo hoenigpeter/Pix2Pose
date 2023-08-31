@@ -76,7 +76,7 @@ def get_gt_detection(path):
     scores = [detection['score'] for detection in detections_for_image]
     obj_ids = np.array(obj_ids)
 
-    if sys.argv[3] == "lmo":
+    if sys.argv[3] == "lmo" or sys.argv[3] == "lmo_random_texture_all":
         dataset_mapping = {
             "lmo": {1: 0, 5: 1, 6: 2, 8: 3, 9: 4, 10: 5, 11: 6, 12: 7}
         }

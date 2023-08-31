@@ -92,7 +92,7 @@ if not(os.path.exists(weight_dir)):
         os.makedirs(weight_dir)
 data_dir = bop_dir+"/train_xyz/{:02d}".format(obj_id)
 
-batch_size=25
+batch_size=50
 datagenerator = dataio.data_generator(data_dir,batch_size=batch_size,res_x=im_width,res_y=im_height)
 
 m_info = model_info['{}'.format(obj_id)]
@@ -167,7 +167,7 @@ if load_recent_weight:
 if(recent_epoch!=-1):
     epoch = recent_epoch
     train_gen_first=False
-max_epoch=20
+max_epoch=10
 if(max_epoch==10): #lr-shcedule used in the bop challenge
     lr_schedule=[1E-3,1E-3,1E-3,1E-3,1E-3,
                 1E-3,1E-3,1E-4,1E-4,1E-4,
@@ -188,7 +188,7 @@ discriminator.compile(loss=['binary_crossentropy'],optimizer=optimizer_disc)
 discriminator.summary()
 
 N_data=datagenerator.n_data
-batch_size=25
+batch_size=50
 batch_counter=0
 n_batch_per_epoch= min(N_data/batch_size*10,3000) #check point: every 10 epoch
 step_lr_drop=5
@@ -276,22 +276,11 @@ for X_src,X_tgt,disc_tgt,prob_gt in iter_:
         discriminator.save_weights(weight_save_disc)
         
         gen_images,probs = generator_train.predict(X_src)
-
-        # imgfn = weight_dir+"/val_img/"+weight_prefix+"_{:02d}.png".format(epoch)
-        # if not(os.path.exists(weight_dir+"/val_img/")):
-        #     os.makedirs(weight_dir+"/val_img/")
         
-        # f,ax=plt.subplots(10,3,figsize=(10,20))
-        # for i in range(10):
-        #     ax[i,0].imshow( (X_src[i]+1)/2)
-        #     ax[i,1].imshow( (X_tgt[i]+1)/2)
-        #     ax[i,2].imshow( (gen_images[i]+1)/2)
-        # plt.savefig(imgfn)
-        # plt.close()
-        
-        lr_current=lr_schedule[epoch]
-        K.set_value(discriminator.optimizer.lr, lr_current)
-        K.set_value(dcgan.optimizer.lr, lr_current)        
+        if epoch < len(lr_schedule):
+            lr_current=lr_schedule[epoch]
+            K.set_value(discriminator.optimizer.lr, lr_current)
+            K.set_value(dcgan.optimizer.lr, lr_current)        
 
     batch_counter+=1
     if(epoch>max_epoch): 

@@ -72,7 +72,7 @@ cfg_fn =sys.argv[1]
 cfg = inout.load_json(cfg_fn)
 
 dataset = sys.argv[2]
-bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_files,gts,cam_param_global = bop_io.get_dataset(cfg,dataset)
+bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_files,mask_visib_files,gts,cam_param_global = bop_io.get_dataset(cfg,dataset)
 
 
 if not(os.path.exists(bop_dir + "/models_xyz/")):

@@ -55,20 +55,18 @@ with open(det_path, 'r') as json_file:
 image_detection_map = {}
 for scene_image_id, detections in data.items():
     scene_id, image_id = map(int, scene_image_id.split('/'))
-    if sys.argv[3] == "itodd":
+    if sys.argv[3] == "itodd" or sys.argv[3] == "itodd_random_texture":
         image_path = f"{scene_id:06d}/gray/{image_id:06d}.tif"
     else:
         image_path = f"{scene_id:06d}/rgb/{image_id:06d}.png"
     image_detection_map[image_path] = detections
 
 def get_gt_detection(path, obj_id):
-    print(path)
-    if sys.argv[3] == "tless":
+    if sys.argv[3] == "tless" or sys.argv[3] == "tless_random_texture":
         relative_image_path = path.split('primesense/')[1]
     else:
         relative_image_path = path.split('test/')[1]
 
-    print(relative_image_path)
     detections_for_image = image_detection_map.get(relative_image_path, [])
     rois = [[bbox[1], bbox[0], bbox[1] + bbox[3], bbox[0] + bbox[2]] for detection in detections_for_image for bbox in [detection['bbox_est']]]
     
@@ -81,15 +79,19 @@ def get_gt_detection(path, obj_id):
             "lmo": {1: 0, 5: 1, 6: 2, 8: 3, 9: 4, 10: 5, 11: 6, 12: 7}
         }
         obj_orders = [dataset_mapping["lmo"].get(detection['obj_id'], detection['obj_id']) for detection in detections_for_image]
+
+        rois = np.array(rois)
+        obj_orders = np.array(obj_orders)
+        scores = np.array(scores)
+
+        mask = obj_orders == dataset_mapping["lmo"][obj_id]
     else:
-        obj_orders = obj_ids-1
+        obj_orders = obj_ids - 1
+        rois = np.array(rois)
+        obj_orders = np.array(obj_orders)
+        scores = np.array(scores)
+        mask = obj_orders == obj_id - 1
 
-    rois = np.array(rois)
-    obj_orders = np.array(obj_orders)
-    scores = np.array(scores)
-
-    # Filter the results based on obj_id
-    mask = obj_orders == obj_id
     if not np.any(mask):
         # No matches found, return empty arrays
         return np.array([]), np.array([]), np.array([]), np.array([])
@@ -99,17 +101,11 @@ def get_gt_detection(path, obj_id):
     obj_ids_filtered = obj_ids[mask]
     scores_filtered = scores[mask]
 
-    print()
-    print("rois: ", rois_filtered)
-    print("obj_orders: ", obj_orders_filtered)
-    print("obj_ids: ", obj_ids_filtered)
-    print("scores: ", scores_filtered)
-
     # print()
-    # print("rois: ", rois)
-    # print("obj_orders: ", obj_orders)
-    # print("obj_ids: ", obj_ids)
-    # print("scores: ", scores)
+    # print("rois: ", rois_filtered)
+    # print("obj_orders: ", obj_orders_filtered)
+    # print("obj_ids: ", obj_ids_filtered)
+    # print("scores: ", scores_filtered)
 
     return rois_filtered,obj_orders_filtered,obj_ids_filtered,scores_filtered
 
@@ -142,7 +138,7 @@ im_width,im_height =cam_param_global['im_size']
 cam_K = cam_param_global['K']
 model_params =inout.load_json(os.path.join(bop_dir+"/models_xyz/",cfg['norm_factor_fn']))
 
-if(dataset=='itodd'):
+if(dataset=='itodd' or dataset=='itodd_random_texture'):
     img_type='gray'
 else:
     img_type='rgb'
@@ -205,7 +201,7 @@ model_ids = [int(sys.argv[4])]
 for m_id,model_id in enumerate(model_ids):
     model_param = model_params['{}'.format(model_id)]
     obj_param=bop_io.get_model_params(model_param)
-    weight_dir = bop_dir+"/pix2pose_weights/{:02d}".format(model_id)
+    weight_dir = bop_dir+"/pix2pose_weights_no_bg/{:02d}".format(model_id)
     if(backbone=='resnet50'):
         weight_fn = os.path.join(weight_dir,"inference_resnet_model.hdf5")
         if not(os.path.exists(weight_fn)):
@@ -272,13 +268,13 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
         #copy gray values to three channels    
         image_t = np.zeros((image_gray.shape[0],image_gray.shape[1],3),dtype=np.uint8)
         #image_t[:,:,:]= np.expand_dims(image_gray,axis=2)
-        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path, model_ids[0]-1)
+        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path, model_ids[0])
 
     else:
         rgb_path = test_dir+"/{:06d}/".format(scene_id)+img_type+\
                         "/{:06d}.png".format(im_id)
         image_t = inout.load_im(rgb_path)   
-        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path, model_ids[0]-1)         
+        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path, model_ids[0])         
 
     
     result_score=[]
@@ -292,7 +288,7 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
     for r_id,roi in enumerate(rois):
         if(roi[0]==-1 and roi[1]==-1):
             continue
-        obj_id = obj_ids[r_id]        
+        obj_id = obj_ids[r_id]
         if not(obj_id in obj_id_targets):
             #skip if the detected object is not in the target object
             continue           
@@ -302,9 +298,9 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
         inst_count_pred[obj_gt_no]+=1
 
         obj_order_id = obj_orders[r_id]
-        obj_pix2pose[obj_order_id].camK=cam_K.reshape(3,3)                
+        obj_pix2pose[0].camK=cam_K.reshape(3,3)                
         img_pred,mask_pred,rot_pred,tra_pred,frac_inlier,bbox_t =\
-        obj_pix2pose[obj_order_id].est_pose(image_t,roi.astype(np.int))            
+        obj_pix2pose[0].est_pose(image_t,roi.astype(np.int))            
         if(frac_inlier==-1):
             continue        
         score = scores[r_id]        
@@ -342,10 +338,10 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
  
 
 
-if(dataset=='tless'):
-    output_path = os.path.join(output_dir,"pix2pose-iccv19_"+dataset+"-"+sys.argv[4]+"-test-primesense.csv")
+if(dataset=='tless' or dataset=='tless_random_texture'):
+    output_path = os.path.join(output_dir,dataset+"/pix2pose-iccv19_"+dataset+"-"+sys.argv[4]+"-test-primesense.csv")
 else:
-    output_path = os.path.join(output_dir,"pix2pose-iccv19_"+dataset+"-"+sys.argv[4]+"-test.csv")
+    output_path = os.path.join(output_dir,dataset+"/pix2pose-iccv19_"+dataset+"-"+sys.argv[4]+"-test.csv")
 
 print("Saving the result to ",output_path)
 inout.save_bop_results(output_path,result_dataset)
