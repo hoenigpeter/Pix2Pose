@@ -1,13 +1,22 @@
 
- ## This fork has the following adaptions:
+ ## This fork has the following modifications:
+ - the random cropping and pasting onto backgrounds was removed
+ - instead, we crop the objects including the original backgrounds from the PBR scenes and enlarge the bounding boxes to include some more background
+ - for evaluation, either all models can be evaluated at once (takes huge GPU RAM space), OR evaluate each object independently and append the csv files at the end
  
-
- - `delete_small_np_files.py` deletes npy files from train_xyz that cause errors due to being empty or having one x or y = 0
- - `tools/5_evaluation_bop_from_file.py` evaluates with detections from a json file, does not use MaskRCNN or ResNet as the original implementation does
- - `tools/4_converter_working.py` a weights converter that is actually working
- - `gray_plys_to_rgb_plys.py` rendering the xyz maps requires ply files with rgb verteces, this script converts ply files that do not have that (e.g. TLESS / ITODD)
- - 
-
+ # use the modified pipeline as follows:
+ - generate the XYZ -> RGB colored ply files: `python3 tools/2_1_ply_file_to_3d_coord_model_custom.py cfg/cfg_bop2020_rgb_custom.json lmo`
+ - render the xyz maps: `python3 tools/2_2_render_pix2pose_training_custom.py cfg/cfg_bop2020_rgb_custom.json lmo`
+ - train Pix2Pose: `python3 tools/3_train_pix2pose_wo_background_crop.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 1`
+ - you can also use: `bash train_lmo.sh` to train all models after one another
+ - (optional): if you dont have a `inference_resnet_model.hdf5` file but only the "raw" discriminator and generator files you can use `python3 tools/4_converter_working.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 1` to convert to the `inference_resnet_model.hdf5` file
+ - evaluation, can be done for single objects (existing detection results file), for all objects with detection results file or for all objects with MASKRCNN
+ - evaluation for single object + detection results file: 
+ - `python3 tools/5_evaluation_bop_from_file_single_obj.py 0 cfg/cfg_bop2020_rgb_det_file.json lmo 1`
+ - evaluation for multi object + detection results file: 
+ - `python3 tools/5_evaluation_bop_from_file.py 0 cfg/cfg_bop2020_rgb_det_file.json lmo`
+ - evaluation for multi object + MASKRCNN: 
+ - `python3 tools/5_evaluation_bop_custom.py 0 cfg/cfg_bop2020_rgb_custom.json lmo`
 ---
 ---
   

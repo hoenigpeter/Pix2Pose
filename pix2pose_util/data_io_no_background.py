@@ -5,6 +5,14 @@ from skimage import io
 from skimage.transform import resize,rotate
 from skimage.filters import gaussian
 from imgaug import augmenters as iaa
+import imgaug.augmenters as iaa  # noqa
+from imgaug.augmenters import (Sequential, SomeOf, OneOf, Sometimes, WithColorspace, WithChannels, Noop,
+                                Lambda, AssertLambda, AssertShape, Scale, CropAndPad, Pad, Crop, Fliplr,
+                                Flipud, Superpixels, ChangeColorspace, PerspectiveTransform, Grayscale,
+                                GaussianBlur, AverageBlur, MedianBlur, Convolve, Sharpen, Emboss, EdgeDetect,
+                                DirectedEdgeDetect, Add, AddElementwise, AdditiveGaussianNoise, Multiply,
+                                MultiplyElementwise, Dropout, CoarseDropout, Invert, ContrastNormalization,
+                                Affine, PiecewiseAffine, ElasticTransformation, pillike, LinearContrast)  # noqa
 
 from matplotlib import pyplot as plt
 
@@ -47,6 +55,25 @@ class data_generator():
                                     iaa.Sometimes(0.1, iaa.AdditiveGaussianNoise(scale=10, per_channel=True)),
                                     iaa.Sometimes(0.5, iaa.ContrastNormalization((0.5, 2.2), per_channel=0.3)),
                                     ], random_order=True)
+        
+        # self.seq_syn= iaa.Sequential([
+        #                             # iaa.Sometimes(0.5, PerspectiveTransform(0.05)),
+        #                             # iaa.Sometimes(0.5, CropAndPad(percent=(-0.05, 0.1))),
+        #                             # iaa.Sometimes(0.5, Affine(scale=(1.0, 1.2))),
+        #                             Sometimes(0.5, CoarseDropout( p=0.2, size_percent=0.05) ),
+        #                             Sometimes(0.4, GaussianBlur((0., 3.))),
+        #                             Sometimes(0.3, pillike.EnhanceSharpness(factor=(0., 50.))),
+        #                             Sometimes(0.3, pillike.EnhanceContrast(factor=(0.2, 50.))),
+        #                             Sometimes(0.5, pillike.EnhanceBrightness(factor=(0.1, 6.))),
+        #                             Sometimes(0.3, pillike.EnhanceColor(factor=(0., 20.))),
+        #                             Sometimes(0.5, Add((-25, 25), per_channel=0.3)),
+        #                             Sometimes(0.3, Invert(0.2, per_channel=True)),
+        #                             Sometimes(0.5, Multiply((0.6, 1.4), per_channel=0.5)),
+        #                             Sometimes(0.5, Multiply((0.6, 1.4))),
+        #                             Sometimes(0.1, AdditiveGaussianNoise(scale=10, per_channel=True)),
+        #                             Sometimes(0.5, iaa.contrast.LinearContrast((0.5, 2.2), per_channel=0.3)),
+        #                             Sometimes(0.5, Grayscale(alpha=(0.0, 1.0))),
+        #                             ], random_order=True)
 
     def get_patch_pair(self,v_id,batch_count):
         imgs = np.load(os.path.join(self.data_dir,self.datafiles[v_id])).astype(np.float32)
@@ -67,8 +94,8 @@ class data_generator():
         # plt.imshow(p_xyz)
         # plt.title('before resizing')
         # plt.show()
-
-        img_augmented = self.seq_syn.augment_image(real_img*255)/255
+        real_img_uint8 = np.array((real_img * 255).clip(0, 255), dtype=np.uint8)
+        img_augmented = self.seq_syn.augment_image(real_img_uint8) / 255
 
         #rotate -15 to 15 degree
         #random flip and rotation is also possible --> good for you!

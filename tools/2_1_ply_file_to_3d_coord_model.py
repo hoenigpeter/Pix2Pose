@@ -1,4 +1,3 @@
-
 import os,sys
 sys.path.append(".")
 sys.path.append("./bop_toolkit")

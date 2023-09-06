@@ -1,8 +1,8 @@
-python3 tools/3_train_pix2pose.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 1 pix2pose_datasets/coco2017/train2017
-python3 tools/3_train_pix2pose.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 5 pix2pose_datasets/coco2017/train2017
-python3 tools/3_train_pix2pose.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 6 pix2pose_datasets/coco2017/train2017
-python3 tools/3_train_pix2pose.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 8 pix2pose_datasets/coco2017/train2017
-python3 tools/3_train_pix2pose.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 9 pix2pose_datasets/coco2017/train2017
-python3 tools/3_train_pix2pose.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 10 pix2pose_datasets/coco2017/train2017
-python3 tools/3_train_pix2pose.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 11 pix2pose_datasets/coco2017/train2017
-python3 tools/3_train_pix2pose.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 12 pix2pose_datasets/coco2017/train2017
+DISPLAY=:0 python3 tools/3_train_pix2pose_wo_background_crop.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 1
+DISPLAY=:0 python3 tools/3_train_pix2pose_wo_background_crop.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 5
+DISPLAY=:0 python3 tools/3_train_pix2pose_wo_background_crop.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 6
+DISPLAY=:0 python3 tools/3_train_pix2pose_wo_background_crop.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 8
+DISPLAY=:0 python3 tools/3_train_pix2pose_wo_background_crop.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 9
+DISPLAY=:0 python3 tools/3_train_pix2pose_wo_background_crop.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 10
+DISPLAY=:0 python3 tools/3_train_pix2pose_wo_background_crop.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 11
+DISPLAY=:0 python3 tools/3_train_pix2pose_wo_background_crop.py 0 cfg/cfg_bop2020_rgb_custom.json lmo 12

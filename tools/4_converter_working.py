@@ -3,7 +3,7 @@ import transforms3d as tf3d
 from math import radians
 
 if(len(sys.argv)!=5):
-    print("python3 tools/3_train_pix2pose.py <gpu_id> <cfg_fn> <dataset> <obj_id>")
+    print("python3 tools/4_converter_working.py <gpu_id> <cfg_fn> <dataset> <obj_id>")
     sys.exit()
 
 gpu_id = sys.argv[1]

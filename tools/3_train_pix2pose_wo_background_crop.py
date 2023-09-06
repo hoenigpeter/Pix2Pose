@@ -72,8 +72,6 @@ def get_disc_batch(X_src, X_tgt, generator_model, batch_counter,label_smoothing=
 
     return X_disc, y_disc
 
-
-
 loss_weights = [100,1]
 train_gen_first = False
 load_recent_weight = True
@@ -167,7 +165,7 @@ if load_recent_weight:
 if(recent_epoch!=-1):
     epoch = recent_epoch
     train_gen_first=False
-max_epoch=10
+max_epoch=20
 if(max_epoch==10): #lr-shcedule used in the bop challenge
     lr_schedule=[1E-3,1E-3,1E-3,1E-3,1E-3,
                 1E-3,1E-3,1E-4,1E-4,1E-4,

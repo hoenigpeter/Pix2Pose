@@ -2,7 +2,7 @@
   "backbone":"resnet50",
   "dataset_dir": "/Pix2Pose/pix2pose_datasets",
   "dataset_names": ["hb","lmo","ycbv","tless","itodd","tudl","icbin", "lmo_random_texture_all", "tless_random_texture","itodd_random_texture"],
-  "detection_file": "yolox-baseline.json",
+  "detection_file": "scene_gt_bb_dummy.json",
   "path_to_detection_pipeline": "/Pix2Pose/Mask_RCNN", 
   "path_to_output": "/Pix2Pose/pix2pose_results",
   "outlier_th":[0.15,0.25,0.35],

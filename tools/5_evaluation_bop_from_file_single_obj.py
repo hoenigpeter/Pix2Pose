@@ -17,7 +17,7 @@ sys.path.append(ROOT_DIR)  # To find local version of the library
 sys.path.append("./bop_toolkit")
 
 if(len(sys.argv)!=5):
-    print("python3 tools/5_evaluation_bop_basic.py [gpu_id] [cfg file] [dataset_name] [obj_id]")
+    print("python3 tools/5_evaluation_bop_from_file_single_obj.py [gpu_id] [cfg file] [dataset_name] [obj_id]")
     sys.exit()
     
 gpu_id = sys.argv[1]

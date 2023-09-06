@@ -7,7 +7,7 @@ import numpy as np
 from tqdm import tqdm
 
 # set the path of the folder where the csv files are located
-folder_path = os.path.join(osp.abspath(osp.dirname(__file__)), 'itodd')
+folder_path = os.path.join(osp.abspath(osp.dirname(__file__)), 'tless_random_texture')
 
 # get a list of all csv files in the folder
 file_pattern = os.path.join(folder_path, '*.csv')

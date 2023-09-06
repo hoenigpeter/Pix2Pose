@@ -1,4 +1,3 @@
-
 import os,sys
 sys.path.append(".")
 sys.path.append("./bop_toolkit")
@@ -66,7 +65,7 @@ def rmfield( a, *fieldnames_to_remove ):
     return a[ [ name for name in a.dtype.names if name not in fieldnames_to_remove ] ]
 
 if(len(sys.argv)<2):
-    print("python3 tools/2_1_ply_file_to_3d_coord_model.py [cfg_fn] [dataset_name]")
+    print("python3 tools/2_1_ply_file_to_3d_coord_model_custom.py [cfg_fn] [dataset_name]")
 
 cfg_fn =sys.argv[1]
 cfg = inout.load_json(cfg_fn)
