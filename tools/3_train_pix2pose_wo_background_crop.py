@@ -90,7 +90,7 @@ if not(os.path.exists(weight_dir)):
         os.makedirs(weight_dir)
 data_dir = bop_dir+"/train_xyz/{:02d}".format(obj_id)
 
-batch_size=50
+batch_size=25
 datagenerator = dataio.data_generator(data_dir,batch_size=batch_size,res_x=im_width,res_y=im_height)
 
 m_info = model_info['{}'.format(obj_id)]
@@ -113,14 +113,15 @@ if('symmetries_continuous' in keys):
 optimizer_dcgan =Adam(lr=1E-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08) 
 optimizer_disc = Adam(lr=1E-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08) 
 backbone='paper'
-if('backbone' in cfg.keys()):
-    if(cfg['backbone']=="resnet50"):
-            backbone='resnet50'
+# if('backbone' in cfg.keys()):
+#     if(cfg['backbone']=="resnet50"):
+#             backbone='resnet50'
 if(backbone=='resnet50'):
     generator_train = ae.aemodel_unet_resnet50(p=1.0)
 else:
+    #generator_train = ae.aemodel_unet_prob(p=1.0)
+    print("we use the tiny aemodel variant!")
     generator_train = ae.aemodel_unet_prob(p=1.0)
-    
 
 discriminator = ae.DCGAN_discriminator()
 imsize=128
@@ -182,11 +183,16 @@ dcgan.compile(loss=[dummy_loss, 'binary_crossentropy'],
 dcgan.summary()
 
 discriminator.trainable = True
+
 discriminator.compile(loss=['binary_crossentropy'],optimizer=optimizer_disc)
+print("Discriminator summary:")
 discriminator.summary()
+print()
+print("Generator Summary:")
+generator_train.summary()
 
 N_data=datagenerator.n_data
-batch_size=50
+batch_size=25
 batch_counter=0
 n_batch_per_epoch= min(N_data/batch_size*10,3000) #check point: every 10 epoch
 step_lr_drop=5
