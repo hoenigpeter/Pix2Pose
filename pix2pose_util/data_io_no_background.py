@@ -45,35 +45,35 @@ class data_generator():
         self.n_data = len(self.datafiles)
         print("Total training views:", self.n_data)
 
-        self.seq_syn= iaa.Sequential([
-                                    iaa.WithChannels(0, iaa.Add((-15, 15))),
-                                    iaa.WithChannels(1, iaa.Add((-15, 15))),
-                                    iaa.WithChannels(2, iaa.Add((-15, 15))),
-                                    iaa.ContrastNormalization((0.8, 1.3)),
-                                    iaa.Multiply((0.8, 1.2),per_channel=0.5),
-                                    iaa.GaussianBlur(sigma=(0.0, 0.5)),
-                                    iaa.Sometimes(0.1, iaa.AdditiveGaussianNoise(scale=10, per_channel=True)),
-                                    iaa.Sometimes(0.5, iaa.ContrastNormalization((0.5, 2.2), per_channel=0.3)),
-                                    ], random_order=True)
-        
         # self.seq_syn= iaa.Sequential([
-        #                             # iaa.Sometimes(0.5, PerspectiveTransform(0.05)),
-        #                             # iaa.Sometimes(0.5, CropAndPad(percent=(-0.05, 0.1))),
-        #                             # iaa.Sometimes(0.5, Affine(scale=(1.0, 1.2))),
-        #                             Sometimes(0.5, CoarseDropout( p=0.2, size_percent=0.05) ),
-        #                             Sometimes(0.4, GaussianBlur((0., 3.))),
-        #                             Sometimes(0.3, pillike.EnhanceSharpness(factor=(0., 50.))),
-        #                             Sometimes(0.3, pillike.EnhanceContrast(factor=(0.2, 50.))),
-        #                             Sometimes(0.5, pillike.EnhanceBrightness(factor=(0.1, 6.))),
-        #                             Sometimes(0.3, pillike.EnhanceColor(factor=(0., 20.))),
-        #                             Sometimes(0.5, Add((-25, 25), per_channel=0.3)),
-        #                             Sometimes(0.3, Invert(0.2, per_channel=True)),
-        #                             Sometimes(0.5, Multiply((0.6, 1.4), per_channel=0.5)),
-        #                             Sometimes(0.5, Multiply((0.6, 1.4))),
-        #                             Sometimes(0.1, AdditiveGaussianNoise(scale=10, per_channel=True)),
-        #                             Sometimes(0.5, iaa.contrast.LinearContrast((0.5, 2.2), per_channel=0.3)),
-        #                             Sometimes(0.5, Grayscale(alpha=(0.0, 1.0))),
+        #                             iaa.WithChannels(0, iaa.Add((-15, 15))),
+        #                             iaa.WithChannels(1, iaa.Add((-15, 15))),
+        #                             iaa.WithChannels(2, iaa.Add((-15, 15))),
+        #                             iaa.ContrastNormalization((0.8, 1.3)),
+        #                             iaa.Multiply((0.8, 1.2),per_channel=0.5),
+        #                             iaa.GaussianBlur(sigma=(0.0, 0.5)),
+        #                             iaa.Sometimes(0.1, iaa.AdditiveGaussianNoise(scale=10, per_channel=True)),
+        #                             iaa.Sometimes(0.5, iaa.ContrastNormalization((0.5, 2.2), per_channel=0.3)),
         #                             ], random_order=True)
+        
+        self.seq_syn= iaa.Sequential([
+                                    # iaa.Sometimes(0.5, PerspectiveTransform(0.05)),
+                                    # iaa.Sometimes(0.5, CropAndPad(percent=(-0.05, 0.1))),
+                                    # iaa.Sometimes(0.5, Affine(scale=(1.0, 1.2))),
+                                    Sometimes(0.5, CoarseDropout( p=0.2, size_percent=0.05) ),
+                                    Sometimes(0.4, GaussianBlur((0., 3.))),
+                                    Sometimes(0.3, pillike.EnhanceSharpness(factor=(0., 50.))),
+                                    Sometimes(0.3, pillike.EnhanceContrast(factor=(0.2, 50.))),
+                                    Sometimes(0.5, pillike.EnhanceBrightness(factor=(0.1, 6.))),
+                                    Sometimes(0.3, pillike.EnhanceColor(factor=(0., 20.))),
+                                    Sometimes(0.5, Add((-25, 25), per_channel=0.3)),
+                                    Sometimes(0.3, Invert(0.2, per_channel=True)),
+                                    Sometimes(0.5, Multiply((0.6, 1.4), per_channel=0.5)),
+                                    Sometimes(0.5, Multiply((0.6, 1.4))),
+                                    Sometimes(0.1, AdditiveGaussianNoise(scale=10, per_channel=True)),
+                                    Sometimes(0.5, iaa.contrast.LinearContrast((0.5, 2.2), per_channel=0.3)),
+                                    Sometimes(0.5, Grayscale(alpha=(0.0, 1.0))),
+                                    ], random_order=True)
 
     def get_patch_pair(self,v_id,batch_count):
         imgs = np.load(os.path.join(self.data_dir,self.datafiles[v_id])).astype(np.float32)
@@ -100,11 +100,11 @@ class data_generator():
         #rotate -15 to 15 degree
         #random flip and rotation is also possible --> good for you!
 
-        #r_angle = random.random()*30-15
-        #base_image = rotate(img_augmented, r_angle,mode='reflect')
-        #tgt_image =  rotate(p_xyz, r_angle,mode='reflect')
+        r_angle = random.random()*30-15
+        base_image = rotate(img_augmented, r_angle,mode='reflect')
+        tgt_image =  rotate(p_xyz, r_angle,mode='reflect')
 
-        #mask_area_crop = rotate(p_mask_no_occ.astype(np.float),r_angle)
+        mask_area_crop = rotate(p_mask_no_occ.astype(np.float),r_angle)
         
         # Calculate scaling factors for maintaining aspect ratio
         scaling_factor = min(self.imsize / real_img.shape[0], self.imsize / real_img.shape[1])
@@ -120,9 +120,9 @@ class data_generator():
         pad_width_right = self.imsize - new_width - pad_width_left
 
         # Resize base_image, tgt_image, and mask_image
-        src_image_resized = resize(img_augmented, (new_height, new_width), order=1, mode='reflect')
-        tgt_image_resized = resize(p_xyz, (new_height, new_width), order=1, mode='reflect')
-        mask_area_resized = resize(p_mask_no_occ.astype(np.float), (new_height, new_width), order=1, mode='reflect')
+        src_image_resized = resize(base_image, (new_height, new_width), order=1, mode='reflect')
+        tgt_image_resized = resize(tgt_image, (new_height, new_width), order=1, mode='reflect')
+        mask_area_resized = resize(mask_area_crop.astype(np.float), (new_height, new_width), order=1, mode='reflect')
 
         # Create a new canvas of the desired size (128x128) and fill with gray
         src_image_final = np.full((self.imsize, self.imsize, 3), 0.5, dtype=np.float32)

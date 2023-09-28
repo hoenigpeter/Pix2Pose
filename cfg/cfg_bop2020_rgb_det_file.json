@@ -1,5 +1,5 @@
 {
-  "backbone":"paper",
+  "backbone":"resnet50",
   "dataset_dir": "/Pix2Pose/pix2pose_datasets",
   "dataset_names": ["hb","lmo","ycbv","tless","itodd","tudl","icbin", "lmo_random_texture_all", "tless_random_texture","itodd_random_texture"],
   "detection_file": "scene_gt_bb_dummy.json",

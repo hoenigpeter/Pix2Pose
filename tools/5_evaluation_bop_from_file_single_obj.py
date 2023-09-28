@@ -207,7 +207,7 @@ for m_id,model_id in enumerate(model_ids):
         if not(os.path.exists(weight_fn)):
             weight_fn = os.path.join(weight_dir,"inference_resnet50.hdf5")
     else:
-        weight_fn = os.path.join(weight_dir,"inference.hdf5")
+        weight_fn = os.path.join(weight_dir,"inference_resnet_model.hdf5")
     print("load pix2pose weight for obj_{} from".format(model_id),weight_fn)
     if not(dynamic_th):
         th_outlier = [th_outliers[m_id]] #provid a fixed outlier value
