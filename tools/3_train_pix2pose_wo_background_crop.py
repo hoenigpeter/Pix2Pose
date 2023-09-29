@@ -166,7 +166,7 @@ if load_recent_weight:
 if(recent_epoch!=-1):
     epoch = recent_epoch
     train_gen_first=False
-max_epoch=20
+max_epoch=40
 if(max_epoch==10): #lr-shcedule used in the bop challenge
     lr_schedule=[1E-3,1E-3,1E-3,1E-3,1E-3,
                 1E-3,1E-3,1E-4,1E-4,1E-4,
@@ -177,6 +177,15 @@ elif(max_epoch==20): #lr-shcedule used in the paper
                 1E-3,1E-3,1E-3,1E-3,1E-4,
                 1E-4,1E-4,1E-4,1E-4,1E-4,
                 1E-4,1E-4,1E-4,1E-4,1E-5]
+elif(max_epoch==40): #lr-shcedule used in the paper
+    lr_schedule=[1E-3,1E-3,1E-3,1E-3,1E-3,
+                1E-3,1E-3,1E-3,1E-3,1E-4,
+                1E-4,1E-4,1E-4,1E-4,1E-4,
+                1E-4,1E-4,1E-4,1E-4,1E-4,
+                1E-4,1E-4,1E-4,1E-4,1E-4,
+                1E-4,1E-4,1E-4,1E-4,1E-4,                
+                1E-4,1E-4,1E-4,1E-4,1E-4,  
+                1E-4,1E-4,1E-4,1E-4,1E-4]
 
 dcgan.compile(loss=[dummy_loss, 'binary_crossentropy'],
                 loss_weights=loss_weights ,optimizer=optimizer_dcgan)
