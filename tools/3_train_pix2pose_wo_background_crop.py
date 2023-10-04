@@ -166,7 +166,7 @@ if load_recent_weight:
 if(recent_epoch!=-1):
     epoch = recent_epoch
     train_gen_first=False
-max_epoch=40
+max_epoch=20
 if(max_epoch==10): #lr-shcedule used in the bop challenge
     lr_schedule=[1E-3,1E-3,1E-3,1E-3,1E-3,
                 1E-3,1E-3,1E-4,1E-4,1E-4,
