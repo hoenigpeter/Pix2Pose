@@ -2,8 +2,8 @@ import os,sys
 import transforms3d as tf3d
 from math import radians
 
-if(len(sys.argv)!=5):
-    print("python3 tools/3_train_pix2pose_wo_background_crop.py <gpu_id> <cfg_fn> <dataset> <obj_id>")
+if(len(sys.argv)!=6):
+    print("python3 tools/3_train_pix2pose_wo_background_crop.py <gpu_id> <cfg_fn> <dataset> <obj_id> <augmentation probability>")
     sys.exit()
 
 gpu_id = sys.argv[1]
@@ -85,13 +85,17 @@ bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_fi
 im_width,im_height =cam_param_global['im_size'] 
 weight_prefix = "pix2pose" 
 obj_id = int(sys.argv[4]) #identical to the number for the ply file.
-weight_dir = bop_dir+"/pix2pose_weights_no_bg/{:02d}".format(obj_id)
+weight_dir = bop_dir + "/p_" + sys.argv[5] + "_pix2pose_weights_no_bg/{:02d}".format(obj_id)
 if not(os.path.exists(weight_dir)):
         os.makedirs(weight_dir)
 data_dir = bop_dir+"/train_xyz/{:02d}".format(obj_id)
 
 batch_size=25
-datagenerator = dataio.data_generator(data_dir,batch_size=batch_size,res_x=im_width,res_y=im_height)
+augmentation_prob=float(sys.argv[5])
+print()
+print(augmentation_prob)
+print()
+datagenerator = dataio.data_generator(data_dir,batch_size=batch_size,res_x=im_width,res_y=im_height,prob=augmentation_prob)
 
 m_info = model_info['{}'.format(obj_id)]
 keys = m_info.keys()
@@ -224,7 +228,7 @@ iter_ = fed.get()
 zero_target = np.zeros((batch_size))
 for X_src,X_tgt,disc_tgt,prob_gt in iter_:
     start_time = time.time()
-    
+    print("aug_prob: ", augmentation_prob)
     discriminator.trainable = True
 
     X_disc, y_disc = get_disc_batch(X_src,X_tgt,generator_train,0,

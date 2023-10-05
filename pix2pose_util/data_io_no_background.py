@@ -21,7 +21,7 @@ import random
 
 class data_generator():
     def __init__(self,data_dir,batch_size=50,gan=True,imsize=128,
-                 res_x=640,res_y=480,
+                 res_x=640,res_y=480,prob=1.0,
                  **kwargs):
         '''
         data_dir: Folder that contains cropped image+xyz
@@ -44,8 +44,6 @@ class data_generator():
 
         self.n_data = len(self.datafiles)
         print("Total training views:", self.n_data)
-
-        prob = 0.6
 
         # self.seq_syn= iaa.Sequential([
         #                             iaa.WithChannels(0, iaa.Add((-15, 15))),
