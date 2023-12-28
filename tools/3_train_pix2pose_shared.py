@@ -1,10 +1,9 @@
 import os,sys
 import transforms3d as tf3d
 from math import radians
-from matplotlib import pyplot as plt
 
-if(len(sys.argv)!=7):
-    print("python3 tools/3_train_pix2pose.py <gpu_id> <cfg_fn> <dataset> <obj_id> <aug_prob> <dir_to_background_imgs>")
+if(len(sys.argv)!=6):
+    print("python3 tools/3_train_pix2pose_wo_background_crop.py <gpu_id> <cfg_fn> <dataset> <obj_id> <augmentation probability>")
     sys.exit()
 
 gpu_id = sys.argv[1]
@@ -36,7 +35,7 @@ from keras.models import Model
 from keras.utils import GeneratorEnqueuer
 from keras.layers import Layer
 
-from BOP.Pix2Pose.pix2pose_util import _data_io_custom as dataio
+from pix2pose_util import data_io_no_background as dataio
 from tools import bop_io
 
 configuration = tf.compat.v1.ConfigProto()
@@ -77,7 +76,6 @@ loss_weights = [100,1]
 train_gen_first = False
 load_recent_weight = True
 
-
 dataset=sys.argv[3]
 
 cfg_fn = sys.argv[2] #"cfg/cfg_bop2019.json"
@@ -87,15 +85,17 @@ bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_fi
 im_width,im_height =cam_param_global['im_size'] 
 weight_prefix = "pix2pose" 
 obj_id = int(sys.argv[4]) #identical to the number for the ply file.
-weight_dir = bop_dir + "/p_" + sys.argv[5] + "_pix2pose_weights/{:02d}".format(obj_id)
+weight_dir = bop_dir + "/p_" + sys.argv[5] + "_pix2pose_weights_no_bg/{:02d}".format(obj_id)
 if not(os.path.exists(weight_dir)):
         os.makedirs(weight_dir)
-back_dir = sys.argv[6]
 data_dir = bop_dir+"/train_xyz/{:02d}".format(obj_id)
 
 batch_size=25
 augmentation_prob=float(sys.argv[5])
-datagenerator = dataio.data_generator(data_dir,back_dir,batch_size=batch_size,res_x=im_width,res_y=im_height,prob=augmentation_prob)
+print()
+print(augmentation_prob)
+print()
+datagenerator = dataio.data_generator(data_dir,batch_size=batch_size,res_x=im_width,res_y=im_height,prob=augmentation_prob)
 
 m_info = model_info['{}'.format(obj_id)]
 keys = m_info.keys()
@@ -123,8 +123,9 @@ if('backbone' in cfg.keys()):
 if(backbone=='resnet50'):
     generator_train = ae.aemodel_unet_resnet50(p=1.0)
 else:
+    #generator_train = ae.aemodel_unet_prob(p=1.0)
+    print("we use the aemodel variant!")
     generator_train = ae.aemodel_unet_prob(p=1.0)
-
 
 discriminator = ae.DCGAN_discriminator()
 imsize=128
@@ -180,14 +181,28 @@ elif(max_epoch==20): #lr-shcedule used in the paper
                 1E-3,1E-3,1E-3,1E-3,1E-4,
                 1E-4,1E-4,1E-4,1E-4,1E-4,
                 1E-4,1E-4,1E-4,1E-4,1E-5]
+elif(max_epoch==40): #lr-shcedule used in the paper
+    lr_schedule=[1E-3,1E-3,1E-3,1E-3,1E-3,
+                1E-3,1E-3,1E-3,1E-3,1E-4,
+                1E-4,1E-4,1E-4,1E-4,1E-4,
+                1E-4,1E-4,1E-4,1E-4,1E-4,
+                1E-4,1E-4,1E-4,1E-4,1E-4,
+                1E-4,1E-4,1E-4,1E-4,1E-4,                
+                1E-4,1E-4,1E-4,1E-4,1E-4,  
+                1E-4,1E-4,1E-4,1E-4,1E-4]
 
 dcgan.compile(loss=[dummy_loss, 'binary_crossentropy'],
                 loss_weights=loss_weights ,optimizer=optimizer_dcgan)
 dcgan.summary()
 
 discriminator.trainable = True
+
 discriminator.compile(loss=['binary_crossentropy'],optimizer=optimizer_disc)
+print("Discriminator summary:")
 discriminator.summary()
+print()
+print("Generator Summary:")
+generator_train.summary()
 
 N_data=datagenerator.n_data
 batch_size=25
@@ -213,6 +228,7 @@ iter_ = fed.get()
 zero_target = np.zeros((batch_size))
 for X_src,X_tgt,disc_tgt,prob_gt in iter_:
     start_time = time.time()
+    print("aug_prob: ", augmentation_prob)
     discriminator.trainable = True
 
     X_disc, y_disc = get_disc_batch(X_src,X_tgt,generator_train,0,

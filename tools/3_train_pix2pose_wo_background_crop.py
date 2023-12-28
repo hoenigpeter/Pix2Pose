@@ -76,6 +76,7 @@ loss_weights = [100,1]
 train_gen_first = False
 load_recent_weight = True
 
+
 dataset=sys.argv[3]
 
 cfg_fn = sys.argv[2] #"cfg/cfg_bop2019.json"
@@ -92,9 +93,6 @@ data_dir = bop_dir+"/train_xyz/{:02d}".format(obj_id)
 
 batch_size=25
 augmentation_prob=float(sys.argv[5])
-print()
-print(augmentation_prob)
-print()
 datagenerator = dataio.data_generator(data_dir,batch_size=batch_size,res_x=im_width,res_y=im_height,prob=augmentation_prob)
 
 m_info = model_info['{}'.format(obj_id)]
@@ -123,9 +121,8 @@ if('backbone' in cfg.keys()):
 if(backbone=='resnet50'):
     generator_train = ae.aemodel_unet_resnet50(p=1.0)
 else:
-    #generator_train = ae.aemodel_unet_prob(p=1.0)
-    print("we use the aemodel variant!")
     generator_train = ae.aemodel_unet_prob(p=1.0)
+
 
 discriminator = ae.DCGAN_discriminator()
 imsize=128
@@ -196,13 +193,8 @@ dcgan.compile(loss=[dummy_loss, 'binary_crossentropy'],
 dcgan.summary()
 
 discriminator.trainable = True
-
 discriminator.compile(loss=['binary_crossentropy'],optimizer=optimizer_disc)
-print("Discriminator summary:")
 discriminator.summary()
-print()
-print("Generator Summary:")
-generator_train.summary()
 
 N_data=datagenerator.n_data
 batch_size=25
@@ -228,7 +220,6 @@ iter_ = fed.get()
 zero_target = np.zeros((batch_size))
 for X_src,X_tgt,disc_tgt,prob_gt in iter_:
     start_time = time.time()
-    print("aug_prob: ", augmentation_prob)
     discriminator.trainable = True
 
     X_disc, y_disc = get_disc_batch(X_src,X_tgt,generator_train,0,

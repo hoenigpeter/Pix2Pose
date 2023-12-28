@@ -118,6 +118,40 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
         else:
             model_dir = bop_dataset_dir+"/models_cad"
         model_scale=0.001
+    elif(dataset=='tless_reconstructed'):
+        bop_dataset_dir = os.path.join(bop_dir,"tless_reconstructed")
+        test_dir = bop_dataset_dir+"/test_primesense"
+        train_dir = bop_dataset_dir+"/train_pbr"
+        if not(train) and not(eval_model):
+            model_dir = bop_dataset_dir+"/models_reconst" #use this only for vis
+        elif eval_model:
+            model_dir = bop_dataset_dir+"/models_eval"
+        else:
+            model_dir = bop_dataset_dir+"/models_cad"
+        model_scale=0.001
+    elif(dataset=='tless_random_reconstructed'):
+        bop_dataset_dir = os.path.join(bop_dir,"tless_random_reconstructed")
+        test_dir = bop_dataset_dir+"/test_primesense"
+        train_dir = bop_dataset_dir+"/train_pbr"
+        if not(train) and not(eval_model):
+            model_dir = bop_dataset_dir+"/models_reconst" #use this only for vis
+        elif eval_model:
+            model_dir = bop_dataset_dir+"/models_eval"
+        else:
+            model_dir = bop_dataset_dir+"/models_cad"
+        model_scale=0.001
+    elif(dataset=='mp6d'):
+        bop_dataset_dir = os.path.join(bop_dir,"mp6d")
+        test_dir = bop_dataset_dir+"/test"
+        train_dir = bop_dataset_dir+"/train_pbr"
+        model_dir = bop_dataset_dir+"/models_cad"
+        model_scale=0.001
+    elif(dataset=='mp6d_random_texture'):
+        bop_dataset_dir = os.path.join(bop_dir,"mp6d_random_texture")
+        test_dir = bop_dataset_dir+"/test"
+        train_dir = bop_dataset_dir+"/train_pbr"
+        model_dir = bop_dataset_dir+"/models_cad"
+        model_scale=0.001
     elif(dataset=='ycbv'):
         bop_dataset_dir = os.path.join(bop_dir,"ycbv")
         test_dir = bop_dataset_dir+"/test"

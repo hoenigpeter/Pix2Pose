@@ -62,14 +62,14 @@ for scene_image_id, detections in data.items():
     image_detection_map[image_path] = detections
 
 def get_gt_detection(path, obj_id):
-    if sys.argv[3] == "tless" or sys.argv[3] == "tless_random_texture":
+    if sys.argv[3] == "tless" or sys.argv[3] == "tless_random_texture" or sys.argv[3] == "tless_reconstructed" or sys.argv[3] == "tless_random_reconstructed":
         relative_image_path = path.split('primesense/')[1]
     else:
         relative_image_path = path.split('test/')[1]
 
     detections_for_image = image_detection_map.get(relative_image_path, [])
     rois = [[bbox[1], bbox[0], bbox[1] + bbox[3], bbox[0] + bbox[2]] for detection in detections_for_image for bbox in [detection['bbox_est']]]
-    
+
     obj_ids = [detection['obj_id'] for detection in detections_for_image]
     scores = [detection['score'] for detection in detections_for_image]
     obj_ids = np.array(obj_ids)
@@ -90,7 +90,10 @@ def get_gt_detection(path, obj_id):
         rois = np.array(rois)
         obj_orders = np.array(obj_orders)
         scores = np.array(scores)
-        mask = obj_orders == obj_id - 1
+
+        #mask = obj_orders == obj_id - 1
+        mask = (obj_orders == obj_id - 1) & (scores > 0.2)
+
 
     if not np.any(mask):
         # No matches found, return empty arrays
@@ -201,7 +204,7 @@ model_ids = [int(sys.argv[4])]
 for m_id,model_id in enumerate(model_ids):
     model_param = model_params['{}'.format(model_id)]
     obj_param=bop_io.get_model_params(model_param)
-    weight_dir = bop_dir+"/p_0.6_pix2pose_weights_no_bg/{:02d}".format(model_id)
+    weight_dir = bop_dir+"/p_0.2_pix2pose_weights_no_bg/{:02d}".format(model_id)
     if(backbone=='resnet50'):
         weight_fn = os.path.join(weight_dir,"inference_resnet_model.hdf5")
         if not(os.path.exists(weight_fn)):
@@ -245,6 +248,22 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
     cam_K = cam_param['cam_K']
     depth_scale = cam_param['depth_scale'] #depth/1000 * depth_scale
     
+    t1=time.time()
+    inst_count_est=np.zeros((len(inst_counts)))
+    inst_count_pred = np.zeros((len(inst_counts)))
+
+    # if(img_type=='gray'):
+    #     rgb_path = test_dir+"/{:06d}/".format(scene_id)+img_type+\
+    #                     "/{:06d}.tif".format(im_id)
+    #     image_gray = inout.load_im(rgb_path)
+    #     #copy gray values to three channels    
+    #     image_t = np.zeros((image_gray.shape[0],image_gray.shape[1],3),dtype=np.uint8)
+    #     image_t[:,:,:]= np.expand_dims(image_gray,axis=2)
+    # else:
+    #     rgb_path = test_dir+"/{:06d}/".format(scene_id)+img_type+\
+    #                     "/{:06d}.png".format(im_id)
+    #     image_t = inout.load_im(rgb_path)          
+
     if(img_type=='gray'):
         rgb_path = test_dir+"/{:06d}/".format(scene_id)+img_type+\
                         "/{:06d}.tif".format(im_id)
@@ -252,31 +271,14 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
         #copy gray values to three channels    
         image_t = np.zeros((image_gray.shape[0],image_gray.shape[1],3),dtype=np.uint8)
         image_t[:,:,:]= np.expand_dims(image_gray,axis=2)
-    else:
-        rgb_path = test_dir+"/{:06d}/".format(scene_id)+img_type+\
-                        "/{:06d}.png".format(im_id)
-        image_t = inout.load_im(rgb_path)            
-
-    t1=time.time()
-    inst_count_est=np.zeros((len(inst_counts)))
-    inst_count_pred = np.zeros((len(inst_counts)))
-    
-    if(img_type=='gray'):
-        rgb_path = test_dir+"/{:06d}/".format(scene_id)+img_type+\
-                        "/{:06d}.tif".format(im_id)
-        image_gray = inout.load_im(rgb_path)
-        #copy gray values to three channels    
-        image_t = np.zeros((image_gray.shape[0],image_gray.shape[1],3),dtype=np.uint8)
-        #image_t[:,:,:]= np.expand_dims(image_gray,axis=2)
         rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path, model_ids[0])
 
     else:
         rgb_path = test_dir+"/{:06d}/".format(scene_id)+img_type+\
                         "/{:06d}.png".format(im_id)
         image_t = inout.load_im(rgb_path)   
-        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path, model_ids[0])         
+        rois,obj_orders,obj_ids,scores = get_gt_detection(rgb_path, model_ids[0])        
 
-    
     result_score=[]
     result_objid=[]
     result_R=[]
@@ -338,7 +340,7 @@ for scene_id,im_id,obj_id_targets,inst_counts in target_list:
  
 
 
-if(dataset=='tless' or dataset=='tless_random_texture'):
+if(dataset=='tless' or dataset=='tless_random_texture' or dataset=='tless_reconstructed' or dataset=='tless_random_reconstructed'):
     output_path = os.path.join(output_dir,dataset+"/pix2pose-iccv19_"+dataset+"-"+sys.argv[4]+"-test-primesense.csv")
 else:
     output_path = os.path.join(output_dir,dataset+"/pix2pose-iccv19_"+dataset+"-"+sys.argv[4]+"-test.csv")

@@ -45,6 +45,16 @@ class data_generator():
         self.n_data = len(self.datafiles)
         print("Total training views:", self.n_data)
 
+        self.seq_syn= iaa.Sequential([        
+                                    Sometimes(0.5 * prob, CoarseDropout( p=0.2, size_percent=0.05) ),
+                                    Sometimes(0.5 * prob, GaussianBlur(1.2*np.random.rand())),
+                                    Sometimes(0.5 * prob, Add((-25, 25), per_channel=0.3)),
+                                    Sometimes(0.3 * prob, Invert(0.2, per_channel=True)),
+                                    Sometimes(0.5 * prob, Multiply((0.6, 1.4), per_channel=0.5)),
+                                    Sometimes(0.5 * prob, Multiply((0.6, 1.4))),
+                                    Sometimes(0.5 * prob, LinearContrast((0.5, 2.2), per_channel=0.3))
+                                    ], random_order = False)
+        
         # self.seq_syn= iaa.Sequential([
         #                             iaa.WithChannels(0, iaa.Add((-15, 15))),
         #                             iaa.WithChannels(1, iaa.Add((-15, 15))),
@@ -55,35 +65,6 @@ class data_generator():
         #                             iaa.Sometimes(0.1, iaa.AdditiveGaussianNoise(scale=10, per_channel=True)),
         #                             iaa.Sometimes(0.5, iaa.ContrastNormalization((0.5, 2.2), per_channel=0.3)),
         #                             ], random_order=True)
-        
-        # self.seq_syn= iaa.Sequential([
-        #                             # iaa.Sometimes(0.5, PerspectiveTransform(0.05)),
-        #                             # iaa.Sometimes(0.5, CropAndPad(percent=(-0.05, 0.1))),
-        #                             # iaa.Sometimes(0.5, Affine(scale=(1.0, 1.2))),
-        #                             Sometimes(0.5 * prob, CoarseDropout( p=0.2, size_percent=0.05) ),
-        #                             Sometimes(0.4 * prob, GaussianBlur((0., 3.))),
-        #                             Sometimes(0.3 * prob, pillike.EnhanceSharpness(factor=(0., 50.))),
-        #                             Sometimes(0.3 * prob, pillike.EnhanceContrast(factor=(0.2, 50.))),
-        #                             Sometimes(0.5 * prob, pillike.EnhanceBrightness(factor=(0.1, 6.))),
-        #                             Sometimes(0.3 * prob, pillike.EnhanceColor(factor=(0., 20.))),
-        #                             Sometimes(0.5 * prob, Add((-25, 25), per_channel=0.3)),
-        #                             Sometimes(0.3 * prob, Invert(0.2, per_channel=True)),
-        #                             Sometimes(0.5 * prob, Multiply((0.6, 1.4), per_channel=0.5)),
-        #                             Sometimes(0.5 * prob, Multiply((0.6, 1.4))),
-        #                             Sometimes(0.1 * prob, AdditiveGaussianNoise(scale=10, per_channel=True)),
-        #                             Sometimes(0.5 * prob, iaa.contrast.LinearContrast((0.5, 2.2), per_channel=0.3)),
-        #                             Sometimes(0.5 * prob, Grayscale(alpha=(0.0, 1.0))),
-        #                             ], random_order=True)
-
-        self.seq_syn= iaa.Sequential([        
-                                    Sometimes(0.5 * prob, CoarseDropout( p=0.2, size_percent=0.05) ),
-                                    Sometimes(0.5 * prob, GaussianBlur(1.2*np.random.rand())),
-                                    Sometimes(0.5 * prob, Add((-25, 25), per_channel=0.3)),
-                                    Sometimes(0.3 * prob, Invert(0.2, per_channel=True)),
-                                    Sometimes(0.5 * prob, Multiply((0.6, 1.4), per_channel=0.5)),
-                                    Sometimes(0.5 * prob, Multiply((0.6, 1.4))),
-                                    Sometimes(0.5 * prob, LinearContrast((0.5, 2.2), per_channel=0.3))
-                                    ], random_order = False)
 
     def get_patch_pair(self,v_id,batch_count):
         imgs = np.load(os.path.join(self.data_dir,self.datafiles[v_id])).astype(np.float32)
@@ -151,20 +132,6 @@ class data_generator():
         tgt_image_final = (tgt_image_final - 0.5) * 2.0
 
         mask_area_final = mask_area_final.astype(np.float64)
-
-        # print("src_image_final: ", src_image_final.dtype)
-        # print("tgt_image_final: ", tgt_image_final.dtype)
-        # print("mask_area_final: ", mask_area_final.dtype)
-
-        # plt.imshow(src_image_final)
-        # plt.title('after resizing')
-        # plt.show()
-        # plt.imshow(tgt_image_final)
-        # plt.title('after resizing')
-        # plt.show()
-        # plt.imshow(mask_area_final)
-        # plt.title('after resizing')
-        # plt.show()
 
         return src_image_final,tgt_image_final,mask_area_final    
 

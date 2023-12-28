@@ -130,14 +130,14 @@ if not(os.path.exists(output_img)):
 
 bop_dir,test_dir,model_plys,\
 model_info,model_ids,rgb_files,\
-depth_files,mask_files,gts,\
+depth_files,mask_files,mask_visib_files,gts,\
 cam_param_global,scene_cam = bop_io.get_dataset(cfg,dataset,incl_param=True,train=False)
 
 im_width,im_height =cam_param_global['im_size'] 
 cam_K = cam_param_global['K']
 model_params =inout.load_json(os.path.join(bop_dir+"/models_xyz/",cfg['norm_factor_fn']))
 
-if(dataset=='itodd'):
+if(dataset=='itodd' or dataset=='itodd_random_texture'):
     img_type='gray'
 else:
     img_type='rgb'
@@ -213,7 +213,7 @@ else:
 for m_id,model_id in enumerate(model_ids):
     model_param = model_params['{}'.format(model_id)]
     obj_param=bop_io.get_model_params(model_param)
-    weight_dir = bop_dir+"/pix2pose_weights/{:02d}".format(model_id)
+    weight_dir = bop_dir+"/p_0.2_pix2pose_weights_no_bg/{:02d}".format(model_id)
     if(backbone=='resnet50'):
         weight_fn = os.path.join(weight_dir,"inference_resnet_model.hdf5")
         if not(os.path.exists(weight_fn)):

@@ -5,9 +5,9 @@ import numpy as np
 plt.style.use('science')
 
 # Define your data
-baseline_value = 93.77
+baseline_value = 70.15
 augmentation_percentages = np.arange(0, 1.2, 0.2)  # From 0 to 1.0 with 0.2 steps
-results = [91.35, 93.01, 93.30, 92.66, 90.90, 91.30]
+results = [68.27, 75.98, 74.47, 72.65, 74.23, 67.83]
 
 # Create a figure and axis
 fig, ax = plt.subplots()
@@ -19,13 +19,16 @@ ax.plot(augmentation_percentages, results, marker='o', linestyle='-')
 ax.axhline(y=baseline_value, color='r', linestyle='--', label='Baseline')
 
 # Set labels and title
-ax.set_xlabel('Augmentation Percentage', fontsize=12)
-ax.set_ylabel('ADD (-S) 0.1', fontsize=12)
-ax.set_title('Pix2Pose LMO Augmentation Variation', fontsize=14)
+ax.set_xlabel('Augmentation Probability Scaling $\lambda$', fontsize=12)
+ax.set_ylabel('ADD(-S)', fontsize=12)
+#ax.set_title('a) TLESS', fontsize=14)
 
 # Add a legend
 ax.legend(fontsize=12)
 
 # Show the plot
-plt.grid(True)
-plt.show()
+plt.grid(False)
+fig.savefig('tless_augmentation.png', dpi=300, bbox_inches='tight')
+
+# Close the figure to free up resources (optional)
+plt.close(fig)

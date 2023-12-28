@@ -8,8 +8,6 @@ ROOT_DIR = os.path.abspath(".")
 sys.path.append(ROOT_DIR) 
 sys.path.append("./bop_toolkit")
 
-
-
 from rendering import utils as renderutil
 from rendering.renderer_xyz import Renderer
 from rendering.model import Model3D
@@ -24,7 +22,7 @@ from bop_toolkit_lib import inout,dataset_params
 from tools import bop_io
 
 def get_sympose(rot_pose,sym):
-    rotation_lock=False
+    rotation_lock=True
     if(np.sum(sym)>0): #continous symmetric
         axis_order='s'
         multiply=[]
@@ -171,7 +169,8 @@ for m_id,model_id in enumerate(model_ids):
             tra_pose = np.array((gt['cam_t_m2c']/1000))[:,0]
             rot_pose = np.array(gt['cam_R_m2c']).reshape(3,3)
             
-            mask = inout.load_im(mask_files[img_id])>0            
+            mask = inout.load_im(mask_files[img_id])>0     
+            mask_visib = inout.load_im(mask_visib_files[img_id])>0
             rot_pose,rotation_lock = get_sympose(rot_pose,sym_continous)
             img_r,depth_rend,bbox_gt = get_rendering(obj_model,rot_pose,tra_pose,ren)
             
@@ -181,6 +180,26 @@ for m_id,model_id in enumerate(model_ids):
             data = np.zeros((bbox_gt[2]-bbox_gt[0],bbox_gt[3]-bbox_gt[1],6),np.uint8)
             data[:,:,:3]=img[bbox_gt[0]:bbox_gt[2],bbox_gt[1]:bbox_gt[3]]
             data[:,:,3:6]=img_r[bbox_gt[0]:bbox_gt[2],bbox_gt[1]:bbox_gt[3]]
+            print("mask_area: ", mask.shape)
+            print("mask_visib_area: ", mask_visib.shape)
+            
+            # Calculate the number of non-zero pixels in the visibility mask
+            visible_pixels = np.count_nonzero(mask_visib)
+
+            # Calculate the number of non-zero pixels in the total mask
+            pixels = np.count_nonzero(mask)
+
+            print("visible_pixels", visible_pixels)
+            print("pixels: ", pixels)
+
+            # Calculate the percentage of visibility
+            if pixels > 0:
+                visibility_percentage = float(visible_pixels) / float(pixels)
+            else:
+                visibility_percentage = 0.0
+
+            print("visibility_percentage: ", visibility_percentage)
+
             max_axis=max(data.shape[0],data.shape[1])
             if(max_axis>128):
                 #resize to 128 
@@ -194,14 +213,14 @@ for m_id,model_id in enumerate(model_ids):
             else:
                 new_data= data
 
-            if new_data[:,:,3:6].shape[0] > 20 and new_data[:,:,3:6].shape[1] > 20 and new_data[:,:,:3].shape[0] > 20 and new_data[:,:,:3].shape[1] > 20:
-                print("Either the first or the second number in the shape array is 0")
-                plt.imshow(new_data[:,:,:3])
-                plt.title('after resizing')
-                plt.show()
-                plt.imshow(new_data[:,:,3:6])
-                plt.title('after resizing')
-                plt.show()
+            if new_data[:,:,3:6].shape[0] > 15 and new_data[:,:,3:6].shape[1] > 15 and new_data[:,:,:3].shape[0] > 15 and new_data[:,:,:3].shape[1] > 15 and visibility_percentage > 0.1:
+                #print("Either the first or the second number in the shape array is 0")
+                # plt.imshow(new_data[:,:,:3])
+                # plt.title('after resizing')
+                # plt.show()
+                # plt.imshow(new_data[:,:,3:6])
+                # plt.title('after resizing')
+                # plt.show()
                 np.save(xyz_fn,new_data)
             
                 if(augment_inplane>0 and not(rotation_lock)):

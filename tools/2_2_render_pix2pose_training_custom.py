@@ -8,8 +8,6 @@ ROOT_DIR = os.path.abspath(".")
 sys.path.append(ROOT_DIR) 
 sys.path.append("./bop_toolkit")
 
-
-
 from rendering import utils as renderutil
 from rendering.renderer_xyz import Renderer
 from rendering.model import Model3D
@@ -67,6 +65,7 @@ def get_rendering(obj_model,rot_pose,tra_pose, ren):
         bbox_gt = np.array([np.min(vu_valid[0]), np.min(vu_valid[1]), np.max(vu_valid[0]), np.max(vu_valid[1])])
     
     return img_r, depth_rend, bbox_gt
+
 def augment_inplane_gen(xyz_id, img, img_r, depth_rend, mask, isYCB=False, step=10):
     depth_mask = (depth_rend > 0).astype(np.float)
     for rot in np.arange(step, 360, step):
@@ -124,7 +123,6 @@ else:
     im_width,im_height =cam_param_global['im_size'] 
     cam_K = cam_param_global['K']
     #check if the image dimension is the same
-    print(rgb_files)
     rgb_fn = rgb_files[0]
     img_temp = inout.load_im(rgb_fn)
     if(img_temp.shape[0]!=im_height or img_temp.shape[1]!=im_width):
@@ -173,7 +171,7 @@ for m_id,model_id in enumerate(model_ids):
             rot_pose = np.array(gt['cam_R_m2c']).reshape(3,3)
             
             mask = inout.load_im(mask_files[img_id])>0     
-            mask_visib = inout.load_im(mask_visib_files[img_id])>0  
+            mask_visib = inout.load_im(mask_visib_files[img_id])>0
             rot_pose,rotation_lock = get_sympose(rot_pose,sym_continous)
             img_r,depth_rend,bbox_gt = get_rendering(obj_model,rot_pose,tra_pose,ren)
             
@@ -286,7 +284,6 @@ for m_id,model_id in enumerate(model_ids):
             
             data = pad_and_resize_image(img, img_r, bbox_gt)
             max_axis=max(data.shape[0],data.shape[1])
-
             if(max_axis>128):
                 #resize to 128 
                 scale = 128.0/max_axis #128/200, 200->128
@@ -299,9 +296,6 @@ for m_id,model_id in enumerate(model_ids):
             else:
                 new_data= data
 
-            # print(new_data[:,:,:3].shape)
-            # print(new_data[:,:,3:6].shape)
-
             if new_data[:,:,3:6].shape[0] > 15 and new_data[:,:,3:6].shape[1] > 15 and new_data[:,:,:3].shape[0] > 15 and new_data[:,:,:3].shape[1] > 15 and visibility_percentage > 0.1:
                 # print("Either the first or the second number in the shape array is 0")
                 # plt.imshow(new_data[:,:,:3])
@@ -310,7 +304,6 @@ for m_id,model_id in enumerate(model_ids):
                 # plt.imshow(new_data[:,:,3:6])
                 # plt.title('after resizing')
                 # plt.show()
-
                 np.save(xyz_fn,new_data)
                 #Image.fromarray(new_data[:,:,:3]).save(xyz_fn+".jpg") 
                 #if(augment_inplane>0 and not(rotation_lock)):
