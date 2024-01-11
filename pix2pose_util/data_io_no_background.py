@@ -18,9 +18,10 @@ from matplotlib import pyplot as plt
 
 import numpy as np
 import random
+import cv2
 
 class data_generator():
-    def __init__(self,data_dir,batch_size=50,gan=True,imsize=128,
+    def __init__(self,data_dir,rgb_dir,xyz_dir,batch_size=50,gan=True,imsize=128,
                  res_x=640,res_y=480,prob=1.0,
                  **kwargs):
         '''
@@ -30,19 +31,32 @@ class data_generator():
         gan: if False, gt for GAN is not yielded
         '''
         self.data_dir = data_dir
+        self.rgb_dir = rgb_dir
+        self.xyz_dir = xyz_dir
         self.imsize=imsize
         self.batch_size = batch_size
         self.gan = gan
-        data_list = os.listdir(data_dir)
-        self.datafiles=[]
+        #data_list = os.listdir(data_dir)
+        rgb_data_list = os.listdir(rgb_dir)
+        xyz_data_list = os.listdir(xyz_dir)
+        #self.datafiles=[]
+        self.rgb_datafiles=[]
+        self.xyz_datafiles=[]
         self.res_x=res_x
         self.res_y=res_y
 
-        for file in data_list:
-            if(file.endswith(".npy")):
-                self.datafiles.append(file)
+        # for file in data_list:
+        #     if(file.endswith(".npy")):
+        #         self.datafiles.append(file)
 
-        self.n_data = len(self.datafiles)
+        for file in rgb_data_list:
+            if(file.endswith(".png")):
+                self.rgb_datafiles.append(file)
+        for file in xyz_data_list:
+            if(file.endswith(".png")):
+                self.xyz_datafiles.append(file)
+
+        self.n_data = len(self.rgb_datafiles)
         print("Total training views:", self.n_data)
 
         self.seq_syn= iaa.Sequential([        
@@ -67,36 +81,37 @@ class data_generator():
         #                             ], random_order=True)
 
     def get_patch_pair(self,v_id,batch_count):
-        imgs = np.load(os.path.join(self.data_dir,self.datafiles[v_id])).astype(np.float32)
-        is_real=False
-        if imgs.shape[2]==7:
-            #this is real image
-            p_vis_mask = imgs[:,:,6]>0
-            is_real=True
-            
-        real_img =imgs[:,:,:3]/255
-        p_xyz =imgs[:,:,3:6]/255
+        #imgs = np.load(os.path.join(self.data_dir,self.datafiles[v_id])).astype(np.float32)
+
+        rgb_imgs = cv2.imread(os.path.join(self.rgb_dir,self.rgb_datafiles[v_id]))
+        xyz_imgs = cv2.imread(os.path.join(self.xyz_dir,self.xyz_datafiles[v_id]))
+
+        rgb_imgs = rgb_imgs[...,::-1].astype(np.float32)
+        xyz_imgs = xyz_imgs[...,::-1].astype(np.float32)
+
+        real_img =rgb_imgs/255
+        p_xyz =xyz_imgs/255
 
         p_height = p_xyz.shape[0]
         p_width = p_xyz.shape[1]
         p_mask_no_occ = np.sum(p_xyz,axis=2)>0
         p_xyz[np.invert(p_mask_no_occ)]=[0.5,0.5,0.5]
 
-        # plt.imshow(p_xyz)
-        # plt.title('before resizing')
-        # plt.show()
         real_img_uint8 = np.array((real_img * 255).clip(0, 255), dtype=np.uint8)
         img_augmented = self.seq_syn.augment_image(real_img_uint8) / 255
 
         #rotate -15 to 15 degree
         #random flip and rotation is also possible --> good for you!
 
-        r_angle = random.random()*30-15
-        base_image = rotate(img_augmented, r_angle,mode='reflect')
-        tgt_image =  rotate(p_xyz, r_angle,mode='reflect')
+        # r_angle = random.random()*30-15
+        # base_image = rotate(img_augmented, r_angle,mode='reflect')
+        # tgt_image =  rotate(p_xyz, r_angle,mode='reflect')
 
-        mask_area_crop = rotate(p_mask_no_occ.astype(np.float),r_angle)
-        
+        base_image = img_augmented
+        tgt_image = p_xyz
+
+        #mask_area_crop = rotate(p_mask_no_occ.astype(np.float),r_angle)
+        mask_area_crop = p_mask_no_occ
         # Calculate scaling factors for maintaining aspect ratio
         scaling_factor = min(self.imsize / real_img.shape[0], self.imsize / real_img.shape[1])
 

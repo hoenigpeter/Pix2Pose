@@ -169,6 +169,8 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
     model_info = inout.load_json(os.path.join(model_dir,"models_info.json"))
     if(dataset=='ycbv'):
         cam_param_global = inout.load_cam_params(os.path.join(bop_dataset_dir,"camera_uw.json"))
+    elif(dataset=='tlesss'):
+        cam_param_global = inout.load_cam_params(os.path.join(bop_dataset_dir,"camera_primesense.json"))
     else:
         cam_param_global = inout.load_cam_params(os.path.join(bop_dataset_dir,"camera.json"))
     
@@ -208,6 +210,8 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
                         im_id = int(img_id)
                         if(dataset=="itodd" and not(train)):
                             rgb_fn = os.path.join(current_dir+"/gray","{:06d}.tif".format(im_id))
+                        elif(dataset=="lmo"):
+                            rgb_fn = os.path.join(current_dir+"/rgb","{:06d}.jpg".format(im_id))
                         else:
                             rgb_fn = os.path.join(current_dir+"/rgb","{:06d}.jpg".format(im_id))
                         depth_fn = os.path.join(current_dir+"/depth","{:06d}.png".format(im_id))

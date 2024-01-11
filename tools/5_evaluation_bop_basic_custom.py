@@ -43,33 +43,6 @@ if detect_type=='rcnn':
     from tools.mask_rcnn_util import BopInferenceConfig
     from skimage.transform import resize
 
-    # def get_rcnn_detection(image_t,model):
-    #     image_t_resized, window, scale, padding, crop = utils.resize_image(
-    #                     np.copy(image_t),
-    #                     min_dim=BopInferenceConfig.IMAGE_MIN_DIM,
-    #                     min_scale=BopInferenceConfig.IMAGE_MIN_SCALE,
-    #                     max_dim=BopInferenceConfig.IMAGE_MAX_DIM,
-    #                     mode=BopInferenceConfig.IMAGE_RESIZE_MODE)
-    #     results = model.detect([image_t_resized], verbose=0)
-    #     r = results[0]
-    #     rois = r['rois']
-    #     rois = rois - [window[0],window[1],window[0],window[1]]
-    #     rois = (rois/scale).astype(np.int)
-    #     obj_orders = np.array(r['class_ids'])-1
-    #     print("rois: ", rois)
-    #     print("obj_orders: ", obj_orders)
-    #     obj_ids = model_ids[obj_orders] 
-    #     #now c_ids are the same annotation those of the names of ply/gt files
-    #     scores = np.array(r['scores'])
-    #     masks = r['masks'][window[0]:window[2],window[1]:window[3],:]
-
-
-    #     print("obj_ids: ", obj_ids)
-    #     print("scores: ", scores)
-    #     print("masks: ", masks)
- 
-    #     return rois,obj_orders,obj_ids,scores,masks
-    
     def get_rcnn_detection(image_t,model):
         image_t_resized, window, scale, padding, crop = utils.resize_image(
                         np.copy(image_t),
@@ -82,38 +55,65 @@ if detect_type=='rcnn':
         rois = r['rois']
         rois = rois - [window[0],window[1],window[0],window[1]]
         rois = (rois/scale).astype(np.int)
+        obj_orders = np.array(r['class_ids'])-1
+        print("rois: ", rois)
+        print("obj_orders: ", obj_orders)
+        obj_ids = model_ids[obj_orders] 
+        #now c_ids are the same annotation those of the names of ply/gt files
+        scores = np.array(r['scores'])
+        masks = r['masks'][window[0]:window[2],window[1]:window[3],:]
 
-        # print(r['class_ids'].shape)
-        # print(len(r['class_ids']))
-        # print(r['class_ids'])
-        # print(rois)
-        # print()
-                
-        if 1 in r['class_ids']:
-            index = -1  # Initialize with a value that indicates "not found"
 
-            for i in range(len(r['class_ids'])):
-                if r['class_ids'][i] == 1:
-                    index = i
-                    break  # Exit the loop once the number is found
-            # print(index)
-
-            obj_orders = np.array([1])-1
-            obj_ids = model_ids[obj_orders] 
-            #now c_ids are the same annotation those of the names of ply/gt files
-            scores = [np.array(r['scores'][index])]
-            masks = r['masks'][window[0]:window[2],window[1]:window[3],:]
-            rois = [np.array(rois[index])]
-            #masks = [masks[index]]
-            # print()
-            # print(obj_ids)
-            # print()
-            # print(scores)
-            # print()
-            # print(masks)
-        else:
-            rois,obj_orders,obj_ids,scores,masks=([] for i in range(5))
+        print("obj_ids: ", obj_ids)
+        print("scores: ", scores)
+        print("masks: ", masks)
+ 
         return rois,obj_orders,obj_ids,scores,masks
+    
+    # def get_rcnn_detection(image_t,model):
+    #     image_t_resized, window, scale, padding, crop = utils.resize_image(
+    #                     np.copy(image_t),
+    #                     min_dim=BopInferenceConfig.IMAGE_MIN_DIM,
+    #                     min_scale=BopInferenceConfig.IMAGE_MIN_SCALE,
+    #                     max_dim=BopInferenceConfig.IMAGE_MAX_DIM,
+    #                     mode=BopInferenceConfig.IMAGE_RESIZE_MODE)
+    #     results = model.detect([image_t_resized], verbose=0)
+    #     r = results[0]
+    #     rois = r['rois']
+    #     rois = rois - [window[0],window[1],window[0],window[1]]
+    #     rois = (rois/scale).astype(np.int)
+
+    #     # print(r['class_ids'].shape)
+    #     # print(len(r['class_ids']))
+    #     # print(r['class_ids'])
+    #     # print(rois)
+    #     # print()
+                
+    #     if 1 in r['class_ids']:
+    #         index = -1  # Initialize with a value that indicates "not found"
+
+    #         for i in range(len(r['class_ids'])):
+    #             if r['class_ids'][i] == 1:
+    #                 index = i
+    #                 break  # Exit the loop once the number is found
+    #         # print(index)
+
+    #         obj_orders = np.array([1])-1
+    #         obj_ids = model_ids[obj_orders] 
+    #         #now c_ids are the same annotation those of the names of ply/gt files
+    #         scores = [np.array(r['scores'][index])]
+    #         masks = r['masks'][window[0]:window[2],window[1]:window[3],:]
+    #         rois = [np.array(rois[index])]
+    #         #masks = [masks[index]]
+    #         # print()
+    #         # print(obj_ids)
+    #         # print()
+    #         # print(scores)
+    #         # print()
+    #         # print(masks)
+    #     else:
+    #         rois,obj_orders,obj_ids,scores,masks=([] for i in range(5))
+    #     return rois,obj_orders,obj_ids,scores,masks
 
 elif detect_type=='retinanet':
     detection_dir=cfg['path_to_detection_pipeline']
@@ -264,7 +264,7 @@ else:
 for m_id,model_id in enumerate(model_ids):
     model_param = model_params['{}'.format(model_id)]
     obj_param=bop_io.get_model_params(model_param)
-    weight_dir = bop_dir+"/pix2pose_weights_no_bg/{:02d}".format(model_id)
+    weight_dir = bop_dir+"/pix2pose_weights/{:02d}".format(model_id)
     if(backbone=='resnet50'):
         weight_fn = os.path.join(weight_dir,"inference_resnet_model.hdf5")
         if not(os.path.exists(weight_fn)):

@@ -90,10 +90,12 @@ weight_dir = bop_dir + "/p_" + sys.argv[5] + "_pix2pose_weights_no_bg/{:02d}".fo
 if not(os.path.exists(weight_dir)):
         os.makedirs(weight_dir)
 data_dir = bop_dir+"/train_xyz/{:02d}".format(obj_id)
+rgb_data_dir = data_dir + "/rgb_images"
+xyz_data_dir = data_dir + "/xyz_images"
 
-batch_size=25
+batch_size=50
 augmentation_prob=float(sys.argv[5])
-datagenerator = dataio.data_generator(data_dir,batch_size=batch_size,res_x=im_width,res_y=im_height,prob=augmentation_prob)
+datagenerator = dataio.data_generator(data_dir,rgb_data_dir,xyz_data_dir,batch_size=batch_size,res_x=im_width,res_y=im_height,prob=augmentation_prob)
 
 m_info = model_info['{}'.format(obj_id)]
 keys = m_info.keys()
@@ -167,7 +169,7 @@ if load_recent_weight:
 if(recent_epoch!=-1):
     epoch = recent_epoch
     train_gen_first=False
-max_epoch=20
+max_epoch=10
 if(max_epoch==10): #lr-shcedule used in the bop challenge
     lr_schedule=[1E-3,1E-3,1E-3,1E-3,1E-3,
                 1E-3,1E-3,1E-4,1E-4,1E-4,
@@ -197,7 +199,7 @@ discriminator.compile(loss=['binary_crossentropy'],optimizer=optimizer_disc)
 discriminator.summary()
 
 N_data=datagenerator.n_data
-batch_size=25
+batch_size=50
 batch_counter=0
 n_batch_per_epoch= min(N_data/batch_size*10,3000) #check point: every 10 epoch
 step_lr_drop=5

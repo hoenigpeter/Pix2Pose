@@ -158,9 +158,9 @@ class pix2pose():
             image_array = img_pred_ori.astype(np.uint8)
 
             # Display the image using Matplotlib
-            plt.imshow(image_array)
-            plt.title('2D3D Corr Map')
-            plt.show()
+            # plt.imshow(image_array)
+            # plt.title('2D3D Corr Map')
+            # plt.show()
 
             # Save the image with a random filename
             # random_filename = str(random.randint(100000, 999999))  # Generating a random 6-digit number
