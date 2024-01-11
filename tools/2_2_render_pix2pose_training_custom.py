@@ -112,7 +112,7 @@ for m_id,model_id in enumerate(model_ids):
             sym_continous[3:]= m_info['symmetries_continuous'][0]['offset']
             print("Symmetric axis(x,y,z):", sym_continous[:3])
 
-        xyz_dir =xyz_target_dir+"/{:02d}".format(int(model_id))
+        xyz_dir = xyz_target_dir+"/{:02d}".format(int(model_id))
         xyz_sub_dir = xyz_dir + "/xyz_images"
         rgb_sub_dir = xyz_dir + "/rgb_images"
 
