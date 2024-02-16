@@ -29,6 +29,20 @@ def get_xyz_max(fn_read):
 def convert_unique(fn_read,fn_write,center_x=True,center_y=True,center_z=True):
     plydata = PlyData.read(fn_read)
 
+    # Check if 'red', 'green', and 'blue' fields exist in the mesh data
+    if 'red' not in plydata.elements[0].data.dtype.names or \
+       'green' not in plydata.elements[0].data.dtype.names or \
+       'blue' not in plydata.elements[0].data.dtype.names:
+
+        # If not, create the fields
+        plydata.elements[0].data = recfunctions.append_fields(
+            plydata.elements[0].data,
+            names=['red', 'green', 'blue'],
+            data=[np.zeros_like(plydata.elements[0].data['x']),
+                  np.zeros_like(plydata.elements[0].data['y']),
+                  np.zeros_like(plydata.elements[0].data['z'])]
+        )
+        
     #x,y,z : embbedding to RGB
     x_ct = np.mean(plydata.elements[0].data['x'])    
     if not(center_x):

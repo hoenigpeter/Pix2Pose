@@ -51,7 +51,7 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
         postfix_model = ''
     if(dataset=='lmo'):
       bop_dataset_dir = os.path.join(bop_dir,"lmo")
-      test_dir = bop_dataset_dir+"/test"
+      test_dir = bop_dataset_dir+"/train_pbr"
       train_dir = bop_dataset_dir+"/train_pbr"
       model_dir = bop_dataset_dir+"/models"+postfix_model
       model_scale=0.001
@@ -155,23 +155,25 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
     elif(dataset=='ycbv'):
         bop_dataset_dir = os.path.join(bop_dir,"ycbv")
         test_dir = bop_dataset_dir+"/test"
-        train_dir = bop_dataset_dir+"/train_pbr"
+        train_dir = bop_dataset_dir+"/train"
         model_dir = bop_dataset_dir+"/models"+postfix_model
         model_scale=0.001
     elif(dataset=='lm'):
         bop_dataset_dir = os.path.join(bop_dir,"lm")
         test_dir = bop_dataset_dir+"/test"
-        train_dir = bop_dataset_dir+"/train_pbr"
+        train_dir = bop_dataset_dir+"/train"
         model_dir = bop_dataset_dir+"/models"+postfix_model
+        model_dir  = "/home/kiru/media/hdd_linux/PoseDataset/hinterstoisser/model_eval"
         model_scale=0.001
     
     model_info = inout.load_json(os.path.join(model_dir,"models_info.json"))
     if(dataset=='ycbv'):
         cam_param_global = inout.load_cam_params(os.path.join(bop_dataset_dir,"camera_uw.json"))
-    elif(dataset=='tless'):
+    elif(dataset=='tlesss'):
         cam_param_global = inout.load_cam_params(os.path.join(bop_dataset_dir,"camera_primesense.json"))
     else:
         cam_param_global = inout.load_cam_params(os.path.join(bop_dataset_dir,"camera.json"))
+    
     im_size=np.array(cam_param_global['im_size'])[::-1]
     
     model_plys=[]
@@ -215,8 +217,11 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
                         depth_fn = os.path.join(current_dir+"/depth","{:06d}.png".format(im_id))
                         if(train):
                             #if(dataset=='hb' or dataset=='itodd' or dataset=='ycbv'):
-                            mask_fn = os.path.join(current_dir+"/mask","{:06d}_000000.png".format(im_id))
-                            mask_visib_fn = os.path.join(current_dir+"/mask_visib","{:06d}_000000.png".format(im_id))
+                            if(dataset=='hb' or dataset=='ycbv'):
+                                mask_fn = os.path.join(current_dir+"/mask","{:06d}.png".format(im_id))
+                            else:
+                                mask_fn = os.path.join(current_dir+"/mask","{:06d}_000000.png".format(im_id))
+                                mask_visib_fn = os.path.join(current_dir+"/mask_visib","{:06d}_000000.png".format(im_id))
                             mask_files.append(mask_fn)
                             mask_visib_files.append(mask_visib_fn)
                         rgb_files.append(rgb_fn)

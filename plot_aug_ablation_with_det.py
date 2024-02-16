@@ -9,8 +9,8 @@ fig, ax = plt.subplots(1, 2, figsize=(8, 3))
 augmentation_percentages = np.arange(0, 1.2, 0.2)  # From 0 to 1.0 with 0.2 steps
 
 # Define your data for Pix2Pose
-baseline_value_pix2pose = 70.15
-results_pix2pose = [68.27, 75.98, 74.47, 72.65, 74.23, 67.83]
+baseline_value_pix2pose = 59.24
+results_pix2pose = [60.31, 62.95, 63.96, 61.78, 61.19, 58.04]
 y_limits_pix2pose = (0, 80)  # Set y-axis limits for Pix2Pose
 
 # Plot the data points for Pix2Pose

@@ -80,6 +80,9 @@ else:
     
     xyz_target_dir = bop_dir+"/train_xyz"
 
+    test_target_fn = cfg['test_target']
+    target_list = bop_io.get_target_list(os.path.join(bop_dir,test_target_fn+".json"))
+    print(target_list)
     im_width,im_height =cam_param_global['im_size'] 
     cam_K = cam_param_global['K']
     #check if the image dimension is the same
@@ -143,33 +146,59 @@ for m_id,model_id in enumerate(model_ids):
                 ren.set_cam(cam_K)
                 tra_pose = np.array((gt['cam_t_m2c']/1000))[:,0]
                 rot_pose = np.array(gt['cam_R_m2c']).reshape(3,3)
-                
-                mask = inout.load_im(mask_files[img_id])>0     
-                mask_visib = inout.load_im(mask_visib_files[img_id])>0
+                print(mask_files[img_id])
+                print(gts[img_id])
+
+                for index, item in enumerate(gts[img_id]):
+                    if item['obj_id'] == obj_id:
+                        break
+
+                parts_mask_files= mask_files[img_id].rsplit('_', 1)
+                parts_mask_visib_files= mask_visib_files[img_id].rsplit('_', 1)
+                new_last_part = f"_{index:06d}.png"
+                new_path_mask_files = f"{parts_mask_files[0]}{new_last_part}"
+                new_path_mask_visib_files = f"{parts_mask_visib_files[0]}{new_last_part}"
+
+                mask = inout.load_im(new_path_mask_files)>0     
+                mask_visib = inout.load_im(new_path_mask_visib_files)>0
                 rot_pose,rotation_lock = get_sympose(rot_pose,sym_continous)
                 img_r,depth_rend,bbox_gt = get_rendering(obj_model,rot_pose,tra_pose,ren)
                 
+                # if len(img_r_raw.shape) == 3 and len(mask_visib.shape) == 2:  # RGB image and single-channel mask
+                #     mask_visib_custom = np.expand_dims(mask_visib, axis=-1)  # Add a new dimension for channels
+                #     mask_visib_custom = np.repeat(mask_visib_custom, img_r_raw.shape[2], axis=2)  # Repeat the mask across all channels
+
+                # # Apply the mask
+                # img_r = img_r_raw * mask_visib_custom
+
                 img = inout.load_im(rgb_fn)
 
                 print("mask_area: ", mask.shape)
                 print("mask_visib_area: ", mask_visib.shape)
                 
-                # Calculate the number of non-zero pixels in the visibility mask
-                visible_pixels = np.count_nonzero(mask_visib)
+                x_min, y_min, x_max, y_max = bbox_gt
 
-                # Calculate the number of non-zero pixels in the total mask
-                pixels = np.count_nonzero(mask)
+                # Slice the masks to only include the area within the bounding box
+                mask_bbox = mask[y_min:y_max, x_min:x_max]
+                mask_visib_bbox = mask_visib[y_min:y_max, x_min:x_max]
 
-                print("visible_pixels", visible_pixels)
-                print("pixels: ", pixels)
+                # plt.imshow(mask*255)
+                # plt.title('after resizing')
+                # plt.show()
 
-                # Calculate the percentage of visibility
-                if pixels > 0:
-                    visibility_percentage = float(visible_pixels) / float(pixels)
+                # Calculate the number of non-zero pixels in the visibility mask within the bounding box
+                visible_pixels_bbox = np.count_nonzero(mask_visib_bbox)
+
+                # Calculate the number of non-zero pixels in the total mask within the bounding box
+                pixels_bbox = np.count_nonzero(mask_bbox)
+
+                # Calculate the visibility percentage within the bounding box
+                if pixels_bbox > 0:
+                    visibility_percentage_bbox = float(visible_pixels_bbox) / float(pixels_bbox)
                 else:
-                    visibility_percentage = 0.0
+                    visibility_percentage_bbox = 0.0
 
-                print("visibility_percentage: ", visibility_percentage)
+                print("Visibility percentage within bounding box: ", visibility_percentage_bbox)
 
                 def pad_and_resize_image(img, img_r, bbox_gt):
                     bbox_width = bbox_gt[3] - bbox_gt[1]
@@ -217,25 +246,14 @@ for m_id,model_id in enumerate(model_ids):
                 else:
                     new_data= data
 
-                if new_data[:,:,3:6].shape[0] > 15 and new_data[:,:,3:6].shape[1] > 15 and new_data[:,:,:3].shape[0] > 15 and new_data[:,:,:3].shape[1] > 15 and visibility_percentage > 0.1:
-                    # print("Either the first or the second number in the shape array is 0")
-                    # plt.imshow(new_data[:,:,:3])
-                    # plt.title('after resizing')
-                    # plt.show()
-                    # plt.imshow(new_data[:,:,3:6])
-                    # plt.title('after resizing')
-                    # plt.show()
-                    #np.save(xyz_fn,new_data)
-                    rgb_data = new_data[:,:,:3]
-                    xyz_data = new_data[:,:,3:6]
+                rgb_data = new_data[:,:,:3]
+                xyz_data = new_data[:,:,3:6]
 
+
+                if new_data[:,:,3:6].shape[0] > 15 and new_data[:,:,3:6].shape[1] > 15 and new_data[:,:,:3].shape[0] > 15 and new_data[:,:,:3].shape[1] > 15 and visibility_percentage_bbox > 0.2:
                     xyz_fn = os.path.join(xyz_dir,scene_string+"_"+img_string+".npy")
                     xyz_sub_fn = os.path.join(xyz_sub_dir,scene_string+"_"+img_string+".png")
                     rgb_sub_fn = os.path.join(rgb_sub_dir,scene_string+"_"+img_string+".png")
 
                     cv2.imwrite(xyz_sub_fn, xyz_data[:, :, ::-1])
                     cv2.imwrite(rgb_sub_fn, rgb_data[:, :, ::-1])
-                    #Image.fromarray(new_data[:,:,:3]).save(xyz_fn+".jpg") 
-                    #if(augment_inplane>0 and not(rotation_lock)):
-                    #    augment_inplane_gen(xyz_id,img,img_r,depth_rend,mask,isYCB=False,step=augment_inplane)
-                #xyz_id+=1
