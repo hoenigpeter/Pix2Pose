@@ -18,29 +18,18 @@ sys.path.append("./bop_toolkit")
 
 from bop_toolkit_lib import inout,dataset_params
 
-from pix2pose_model import ae_model as ae
+from pix2pose_model import ae_model_torch as ae
 import matplotlib.pyplot as plt
 import time
 import random
 import numpy as np
 
-import tensorflow as tf
-from keras import losses
-from keras import optimizers
-from keras.callbacks import TensorBoard, ModelCheckpoint,Callback
-from keras import backend as K
-from keras.optimizers import Adam
-from keras.layers import Input
-from keras.models import Model
-from keras.utils import GeneratorEnqueuer
-from keras.layers import Layer
+import torch
+import torch.nn as nn
+import torch.optim as optim
 
 from pix2pose_util import data_io_no_background as dataio
-from tools import bop_io
-
-configuration = tf.compat.v1.ConfigProto()
-configuration.gpu_options.allow_growth = True
-session = tf.compat.v1.Session(config=configuration)
+from torch_tools import bop_io
 
 def dummy_loss(y_true,y_pred):
     return y_pred
@@ -75,7 +64,6 @@ def get_disc_batch(X_src, X_tgt, generator_model, batch_counter,label_smoothing=
 loss_weights = [100,1]
 train_gen_first = False
 load_recent_weight = True
-
 
 dataset=sys.argv[3]
 
@@ -114,29 +102,31 @@ if('symmetries_discrete' in keys):
 if('symmetries_continuous' in keys):
     sym_cont=True
 
-optimizer_dcgan =Adam(lr=1E-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08) 
-optimizer_disc = Adam(lr=1E-4, beta_1=0.9, beta_2=0.999, epsilon=1e-08) 
-backbone='paper'
-if('backbone' in cfg.keys()):
-    if(cfg['backbone']=="resnet50"):
-            backbone='resnet50'
-if(backbone=='resnet50'):
-    generator_train = ae.aemodel_unet_resnet50(p=1.0)
-else:
-    generator_train = ae.aemodel_unet_prob(p=1.0)
+lr = 1e-4
+beta1 = 0.9
+beta2 = 0.999
+epsilon = 1e-8
 
 
-discriminator = ae.DCGAN_discriminator()
-imsize=128
-dcgan_input = Input(shape=(imsize, imsize, 3))
-dcgan_target = Input(shape=(imsize, imsize, 3))
-prob_gt = Input(shape=(imsize, imsize, 1))
+dcgan = ae.DCGAN_discriminator()
+generator_train = ae.AE_Model()
+
+optimizer_dcgan = optim.Adam(generator_train.parameters(), lr=lr, betas=(beta1, beta2), eps=epsilon)
+optimizer_disc = optim.Adam(dcgan.parameters(), lr=lr, betas=(beta1, beta2), eps=epsilon)
+
+imsize = 128
+channels = 3
+
+dcgan_input = torch.randn(1, channels, imsize, imsize)
+dcgan_target = torch.randn(1, channels, imsize, imsize)
+prob_gt = torch.randn(1, 1, imsize, imsize)
 gen_img,prob = generator_train(dcgan_input)
-recont_l = ae.transformer_loss(sym_pool)([gen_img,dcgan_target,prob,prob_gt])
-discriminator.trainable = False
-disc_out = discriminator(gen_img)
-dcgan = Model(inputs=[dcgan_input,dcgan_target,prob_gt],outputs=[recont_l,disc_out])
+print(gen_img.shape)
+recont_l = ae.TransformerLoss(sym_pool)([gen_img,dcgan_target,prob,prob_gt])
+dcgan.trainable = False
+disc_out = dcgan(gen_img)
 
+print("FIRST MILESTONE")
 epoch=0
 recent_epoch=-1
 
@@ -199,7 +189,7 @@ discriminator.compile(loss=['binary_crossentropy'],optimizer=optimizer_disc)
 discriminator.summary()
 
 N_data=datagenerator.n_data
-batch_size=25
+batch_size=50
 batch_counter=0
 n_batch_per_epoch= min(N_data/batch_size*10,3000) #check point: every 10 epoch
 step_lr_drop=5

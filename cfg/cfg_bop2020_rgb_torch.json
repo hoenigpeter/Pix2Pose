@@ -1,0 +1,16 @@
+{
+  "backbone":"resnet50",
+  "dataset_dir": "/home/hoenig/BOP/Pix2Pose/pix2pose_datasets",
+  "dataset_names": ["mp6d", "mp6d_random_texture", "hb","lmo","ycbv","tless","itodd","tudl","icbin", "lmo_random_texture_all", "tless_random_texture","tless_reconstructed","tless_random_reconstructed","itodd_random_texture"],
+  "detection_file": "scene_gt_bb_dummy.json",
+  "path_to_detection_pipeline": "/home/hoenig/BOP/Pix2Pose/Mask_RCNN", 
+  "path_to_output": "/home/hoenig/BOP/Pix2Pose/pix2pose_results",
+  "outlier_th":[0.15,0.25,0.35],
+  "inlier_th":0.15,
+  "norm_factor_fn":"norm_factor.json",
+  "background_imgs_for_training":"/home/hoenig/BOP/Pix2Pose/pix2pose_datasets/coco2017/train2017/",
+  "score_type":1,
+  "task_type":2,
+  "cand_factor":2,
+  "test_target":"test_targets_bop19"  
+}

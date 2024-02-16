@@ -73,36 +73,42 @@ def aemodel_unet_prob(p=0.5):
 
     f1_1 = Conv2D(64, (5, 5), strides=(2, 2), name='conv1_1',padding='same')(input_img)
     f1_1 = BatchNormalization(axis=bn_axis)(f1_1)
-
-    #f1_1 = Activation('relu')(f1_1) #64x64x64
     f1_1 = LeakyReLU()(f1_1)
+
     f1_2 = Conv2D(64, (5, 5), strides=(2, 2), name='conv1_2',padding='same')(input_img)
     f1_2 = BatchNormalization(axis=bn_axis)(f1_2)
     f1_2 = LeakyReLU()(f1_2)
+
     f1 = Concatenate()([f1_1,f1_2]) #64x64x128
 
     f2_1 = Conv2D(128, (5, 5), strides=(2, 2), name='conv2_1',padding='same')(f1)
     f2_1 = BatchNormalization(axis=bn_axis)(f2_1)
     f2_1 = LeakyReLU()(f2_1)
+
     f2_2 = Conv2D(128, (5, 5), strides=(2, 2), name='conv2_2',padding='same')(f1)
     f2_2 = BatchNormalization(axis=bn_axis)(f2_2)
     f2_2 = LeakyReLU()(f2_2)
+
     f2 = Concatenate()([f2_1,f2_2]) #32x32x256
 
     f3_1 = Conv2D(128, (5, 5), strides=(2, 2), name='conv3_1',padding='same')(f2)
     f3_1 = BatchNormalization(axis=bn_axis)(f3_1)
     f3_1 = LeakyReLU()(f3_1)
+
     f3_2 = Conv2D(128, (5, 5), strides=(2, 2), name='conv3_2',padding='same')(f2)
     f3_2 = BatchNormalization(axis=bn_axis)(f3_2)
     f3_2 = LeakyReLU()(f3_2)
+
     f3 = Concatenate()([f3_1,f3_2]) #16x16x256
 
     f4_1 = Conv2D(256, (5, 5), strides=(2, 2), name='conv4_1',padding='same')(f3)
     f4_1 = BatchNormalization(axis=bn_axis)(f4_1)
     f4_1 = LeakyReLU()(f4_1)
+
     f4_2 = Conv2D(256, (5, 5), strides=(2, 2), name='conv4_2',padding='same')(f3)
     f4_2 = BatchNormalization(axis=bn_axis)(f4_2)
     f4_2 = LeakyReLU()(f4_2)
+    
     f4 = Concatenate()([f4_1,f4_2]) #8x8x512
 
     x= Flatten()(f4)
