@@ -2,8 +2,8 @@ import os,sys
 import transforms3d as tf3d
 from math import radians
 
-if(len(sys.argv)!=6):
-    print("python3 tools/3_train_pix2pose_wo_background_crop.py <gpu_id> <cfg_fn> <dataset> <obj_id> <augmentation probability>")
+if(len(sys.argv)!=5):
+    print("python3 tools/3_train_pix2pose_wo_background_crop.py <gpu_id> <cfg_fn> <dataset> <obj_id>")
     sys.exit()
 
 gpu_id = sys.argv[1]
@@ -17,7 +17,7 @@ sys.path.append("./bop_toolkit")
 
 from bop_toolkit_lib import inout,dataset_params
 
-from pix2pose_model import ae_model_torch as ae
+from pix2pose_model import ae_model_diffusion_torch as ae
 import matplotlib.pyplot as plt
 import time
 import random
@@ -65,7 +65,7 @@ bop_dir,source_dir,model_plys,model_info,model_ids,rgb_files,depth_files,mask_fi
 im_width,im_height =cam_param_global['im_size'] 
 weight_prefix = "pix2pose" 
 obj_id = int(sys.argv[4]) #identical to the number for the ply file.
-weight_dir = bop_dir + "/p_" + sys.argv[5] + "_pix2pose_weights_no_bg/{:02d}".format(obj_id)
+weight_dir = bop_dir + "/pix2pose_weights_diffusion/{:02d}".format(obj_id)
 if not(os.path.exists(weight_dir)):
         os.makedirs(weight_dir)
 data_dir = bop_dir+"/train_xyz/{:02d}".format(obj_id)
@@ -73,8 +73,8 @@ rgb_data_dir = data_dir + "/rgb_images"
 xyz_data_dir = data_dir + "/xyz_images"
 
 batch_size=50
-augmentation_prob=float(sys.argv[5])
 #datagenerator = dataio.data_generator(data_dir,rgb_data_dir,xyz_data_dir,batch_size=batch_size,res_x=im_width,res_y=im_height,prob=augmentation_prob)
+augmentation_prob = 1.0
 custom_dataset = dataio.CustomDataset(data_dir, rgb_data_dir, xyz_data_dir, batch_size=batch_size, gan=True, imsize=128, res_x=im_width,res_y=im_height,prob=augmentation_prob)
 data_loader = DataLoader(custom_dataset, batch_size=None, shuffle=True)
 
@@ -100,7 +100,12 @@ beta1 = 0.9
 beta2 = 0.999
 epsilon = 1e-8
 
-generator = ae.AE_Model()
+num_steps = 10
+in_channels = 3
+out_channels = 64
+noise_std = 0.1
+
+generator = ae.DiffusionModel(num_steps, in_channels, out_channels, noise_std)
 generator.to(device)
 transformer_loss = ae.TransformerLoss(sym=sym_pool)
 
@@ -115,21 +120,18 @@ prob_gt = torch.randn(1, 1, imsize, imsize).to(device)
 gen_img,prob = generator(dcgan_input)
 
 epoch=0
-max_epoch=50
+max_epoch=10
 
 N_data = custom_dataset.n_data
 batch_counter = 0
 
-#feed_iter = datagenerator.generator()
 scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer_generator, max_epoch, eta_min=1e-7)
 
 while epoch < max_epoch:
-    #for X_src, X_tgt, disc_tgt, prob_gt in feed_iter:
 
     custom_dataset.shuffle_indices()
     total_iterations = len(data_loader)
-    start_time_epoch = time.time()  # Record start time for the current iteration
-
+    
     for iteration, (X_src, X_tgt, disc_tgt, prob_gt) in enumerate(data_loader):
 
         start_time_iteration = time.time()  # Record start time for the current iteration
@@ -174,8 +176,8 @@ while epoch < max_epoch:
 
         batch_counter+=1
 
-    elapsed_time_epoch = time.time() - start_time_epoch  # Calculate elapsed time for the whole batch
-    print("Time for the whole epoch: {:.4f} seconds".format(elapsed_time_epoch))
+    elapsed_time_batch = time.time() - start_time_iteration  # Calculate elapsed time for the whole batch
+    print("Time for the whole batch: {:.4f} seconds".format(elapsed_time_batch))
 
     scheduler.step()
     torch.save(generator.state_dict(), os.path.join(weight_dir, f'{weight_prefix}_generator_epoch_{epoch}.pth'))

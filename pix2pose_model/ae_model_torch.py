@@ -13,9 +13,9 @@ class TransformerLoss(nn.Module):
         y_prob_pred = torch.squeeze(x[2], dim=3)
         y_prob_gt = x[3]
         visible = (y_prob_gt > 0.5).type_as(y_pred)
-        print("visible: ", visible.shape)
+        #print("visible: ", visible.shape)
         visible = torch.squeeze(visible, dim=1)
-        print("visible: ", visible.shape)
+        #print("visible: ", visible.shape)
         # Generate transformed values using sym
         if len(self.sym) > 1:
             loss_sums = torch.zeros(1).type_as(y_pred)
@@ -40,24 +40,42 @@ class TransformerLoss(nn.Module):
             loss_xyz = torch.unsqueeze(torch.unsqueeze(loss_switch, 2), 3) * loss_xyzs
             loss_xyz = torch.sum(loss_xyz, dim=0)
         else:
-            loss_xyz = torch.sum(torch.abs(y_recont_gt - y_pred), dim=3) / 3
-        print(loss_xyz.shape)
-        print(y_prob_pred.shape)
-        print(torch.min(loss_xyz, dim=1).values.shape)
+            loss_xyz = torch.sum(torch.abs(y_recont_gt - y_pred), dim=1) / 3
+
+        loss_xyz = loss_xyz.unsqueeze(1)
+        #print("loss_xyz: ", loss_xyz.shape)
         prob_loss = torch.square(y_prob_pred - torch.min(loss_xyz, dim=1).values)
-        loss_xyz = loss_xyz.unsqueeze(2)
         loss_invisible = (1 - visible) * loss_xyz
         loss_visible = visible * loss_xyz
         loss = loss_visible * 3 + loss_invisible + 0.5 * prob_loss
-        loss = torch.mean(loss, dim=[1, 2])
+        #print("loss shape: ", loss.shape)
+        loss = torch.mean(torch.mean(loss, dim=[2, 3]))
         return loss
 
+class AttentionModule(nn.Module):
+    def __init__(self, in_channels):
+        super(AttentionModule, self).__init__()
+        self.global_avg_pooling = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(in_channels, in_channels // 2),
+            nn.ReLU(),
+            nn.Linear(in_channels // 2, in_channels),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        weights = self.global_avg_pooling(x)
+        weights = weights.view(weights.size(0), -1)
+        weights = self.fc(weights).view(weights.size(0), -1, 1, 1)
+        return x * weights
+    
 class EncoderBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(EncoderBlock, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=5, stride=2, padding=2)
         self.bn = nn.BatchNorm2d(out_channels)
         self.relu = nn.LeakyReLU()
+        self.attention = AttentionModule(out_channels)
 
     def forward(self, x):
         return self.relu(self.bn(self.conv(x)))
@@ -110,28 +128,25 @@ class AE_Model(nn.Module):
         )
 
     def forward(self, x):
-
         f1_1 = self.encoder[0](x)
         f1_2 = self.encoder[1](x)
         f1 = torch.cat([f1_1, f1_2], dim=1)
-        #print("f1:", f1.shape)
         
         f2_1 = self.encoder[2](f1)
         f2_2 = self.encoder[3](f1)
         f2 = torch.cat([f2_1, f2_2], dim=1)
-        #print("f2:", f2.shape)
         
         f3_1 = self.encoder[4](f2)
         f3_2 = self.encoder[5](f2)
         f3 = torch.cat([f3_1, f3_2], dim=1)
-        #print("f3:", f3.shape)
         
         f4_1 = self.encoder[6](f3)
         f4_2 = self.encoder[7](f3)
         f4 = torch.cat([f4_1, f4_2], dim=1)
-        #print("f3:", f3.shape)
+        f4 = f4.contiguous()
 
         x = f4.view(f4.size(0), -1)
+        #x = f4.view(f4.size(0), -1)
         x = self.bottleneck(x)
         #print("bottleneck:", x.shape)
         
@@ -167,38 +182,32 @@ class AE_Model(nn.Module):
 class DCGAN_discriminator(nn.Module):
     def __init__(self):
         super(DCGAN_discriminator, self).__init__()
-        nb_filters = 64
-        nb_conv = int(np.floor(np.log(128) / np.log(2)))
-        list_filters = [nb_filters * min(8, (2 ** i)) for i in range(nb_conv)]
 
-        self.conv1 = nn.Conv2d(3, list_filters[0], kernel_size=3, stride=2, padding=1)
-        self.bn1 = nn.BatchNorm2d(list_filters[0])
+        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1)
+        self.bn1 = nn.BatchNorm2d(64)
         self.relu1 = nn.LeakyReLU(0.2)
 
-        # Next convs
-        conv_blocks = []
-        for i, f in enumerate(list_filters[1:]):
-            conv_name = "conv%d" % (i + 2)
-            bn_name = "bn%d" % (i + 2)
-            relu_name = "relu%d" % (i + 2)
+        self.conv2 = nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.relu2 = nn.LeakyReLU(0.2)
 
-            conv_block = nn.Sequential(
-                nn.Conv2d(list_filters[i], f, kernel_size=3, stride=2, padding=1),
-                nn.BatchNorm2d(f),
-                nn.LeakyReLU(0.2)
-            )
+        self.conv3 = nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1)
+        self.bn3 = nn.BatchNorm2d(256)
+        self.relu3 = nn.LeakyReLU(0.2)
 
-            setattr(self, conv_name, conv_block)
-            conv_blocks.append(conv_name)
+        self.conv4 = nn.Conv2d(256, 256, kernel_size=3, stride=2, padding=1)
+        self.bn4 = nn.BatchNorm2d(256)
+        self.relu4 = nn.LeakyReLU(0.2)
 
-        self.conv_blocks = nn.Sequential(*[getattr(self, name) for name in conv_blocks])
         self.flatten = nn.Flatten()
-        self.fc_out = nn.Linear(list_filters[-1] * 4 * 4, 1)
+        self.fc_out = nn.Linear(256 * 8 * 8, 1)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
         x = self.relu1(self.bn1(self.conv1(x)))
-        x = self.conv_blocks(x)
+        x = self.relu2(self.bn2(self.conv2(x)))
+        x = self.relu3(self.bn3(self.conv3(x)))
+        x = self.relu4(self.bn4(self.conv4(x)))
         x = self.flatten(x)
         x = self.fc_out(x)
         x = self.sigmoid(x)

@@ -99,7 +99,7 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
     elif(dataset=='tless'):
         bop_dataset_dir = os.path.join(bop_dir,"tless")
         test_dir = bop_dataset_dir+"/test_primesense"
-        train_dir = bop_dataset_dir+"/test_primesense"
+        train_dir = bop_dataset_dir+"/train_pbr"
         if not(train) and not(eval_model):
             model_dir = bop_dataset_dir+"/models_reconst" #use this only for vis
         elif eval_model:
@@ -211,7 +211,7 @@ def get_dataset(cfg,dataset,train=True,incl_param=False,eval=False,eval_model=Fa
                         elif(dataset=="lmo"):
                             rgb_fn = os.path.join(current_dir+"/rgb","{:06d}.jpg".format(im_id))
                         else:
-                            rgb_fn = os.path.join(current_dir+"/rgb","{:06d}.png".format(im_id))
+                            rgb_fn = os.path.join(current_dir+"/rgb","{:06d}.jpg".format(im_id))
                         depth_fn = os.path.join(current_dir+"/depth","{:06d}.png".format(im_id))
                         if(train):
                             #if(dataset=='hb' or dataset=='itodd' or dataset=='ycbv'):
